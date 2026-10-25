@@ -4,6 +4,15 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 4: video chat)
+
+- Video chat at `/chat/video`: camera and microphone preflight with mirrored preview, device pickers and clear permission errors with a text fallback.
+- WebRTC peer sessions with perfect negotiation, ICE restart, live device switching and relay-only mode.
+- Two video panes (side by side on desktop, stacked on mobile), one control bar (Next/Esc, mute, camera, chat, quality, Block, Stop) and a collapsible chat panel.
+- Connection quality indicator from WebRTC stats (latency, packet loss, relayed).
+- Settings page: theme, default devices, relay-only video and match sound.
+- Unit tests for quality classification, stats parsing and media errors; Playwright video specs with fake devices, including a relay-only call through coturn.
+
 ### Added (Phase 3: matchmaking and text chat)
 
 - Chat page `/chat/text` (and `/chat/video`, text-only until Phase 4): searching, chatting, ended and stopped states.

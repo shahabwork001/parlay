@@ -18,9 +18,9 @@ Status values: Not started, In progress, Done, Blocked.
 | Text chat                            | Done        | FE + BE | 3     | [docs/features/text-chat.md](docs/features/text-chat.md)                           |
 | Presence and disconnect detection    | Done        | FE + BE | 3     | [docs/features/presence.md](docs/features/presence.md)                             |
 | Block and skip history               | Done        | FE + BE | 3     | [docs/features/block-history.md](docs/features/block-history.md)                   |
-| Video chat                           | Not started | FE + BE | 4     | [docs/features/video-chat.md](docs/features/video-chat.md)                         |
-| WebRTC signaling and TURN            | Not started | FE + BE | 4     | [docs/features/webrtc-signaling.md](docs/features/webrtc-signaling.md)             |
-| User settings                        | In progress | FE      | 4     | [docs/features/settings.md](docs/features/settings.md)                             |
+| Video chat                           | Done        | FE + BE | 4     | [docs/features/video-chat.md](docs/features/video-chat.md)                         |
+| WebRTC signaling and TURN            | Done        | FE + BE | 4     | [docs/features/webrtc-signaling.md](docs/features/webrtc-signaling.md)             |
+| User settings                        | Done        | FE      | 4     | [docs/features/settings.md](docs/features/settings.md)                             |
 | In-chat reporting                    | Not started | FE + BE | 5     | [docs/features/reporting.md](docs/features/reporting.md)                           |
 | Client-side NSFW screening           | Not started | FE + BE | 5     | [docs/features/client-nsfw-screening.md](docs/features/client-nsfw-screening.md)   |
 | Text moderation                      | Not started | FE + BE | 5     | [docs/features/text-moderation.md](docs/features/text-moderation.md)               |

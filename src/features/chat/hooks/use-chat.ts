@@ -1,25 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { usePreferencesStore } from "@/features/preferences/store/preferences-store";
+import { playMatchSound } from "@/features/settings/match-sound";
+import { useSettingsStore } from "@/features/settings/store/settings-store";
 import { sessionStore, whenSessionReady } from "@/lib/auth/session-store";
 import type { ChatMode } from "@/lib/constants";
 import { TERMS_VERSION } from "@/lib/legal";
-import { usePreferencesStore } from "@/features/preferences/store/preferences-store";
 import { type ChatSocket, openChatConnection } from "@/services/realtime/chat-connection";
-import { CONNECT_ERRORS } from "@/services/realtime/chat-events";
+import { CONNECT_ERRORS, type MediaState, type RtcSignal } from "@/services/realtime/chat-events";
 import { useChatStore } from "../store/chat-store";
 
 const TYPING_THROTTLE_MS = 2000;
 const TYPING_IDLE_MS = 3000;
 const PARTNER_TYPING_TIMEOUT_MS = 5000;
 
+export interface ChatOptions {
+  /** Join the queue as soon as the socket connects (text). Video waits for the camera preflight. */
+  readonly autoJoin: boolean;
+  readonly onSignal?: (signal: RtcSignal) => void;
+  readonly onMediaState?: (state: MediaState) => void;
+}
+
 /**
  * Drives one chat page: opens the socket, joins the queue with the saved preferences, maps server
  * events to the chat store and exposes the user actions. Closing the page leaves the chat.
  */
-export function useChat(mode: ChatMode) {
+export function useChat(mode: ChatMode, options: ChatOptions) {
   const socketRef = useRef<ChatSocket | null>(null);
   const typingRef = useRef({ lastSent: 0, idleTimer: 0, partnerTimer: 0 });
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const join = useCallback(() => {
     const socket = socketRef.current;
@@ -51,7 +65,8 @@ export function useChat(mode: ChatMode) {
 
       socket.on("connect", () => {
         const { phase } = useChatStore.getState();
-        if (phase === "connecting" || phase === "searching") join();
+        if (phase === "searching" || (phase === "connecting" && optionsRef.current.autoJoin))
+          join();
       });
       socket.on("disconnect", (reason) => {
         // A search survives reconnection (it rejoins on connect); a live chat cannot.
@@ -59,19 +74,24 @@ export function useChat(mode: ChatMode) {
           useChatStore.getState().ended("connection");
         }
       });
-      socket.on("match:found", (match) => useChatStore.getState().matched(match));
+      socket.on("match:found", (match) => {
+        useChatStore.getState().matched(match);
+        if (useSettingsStore.getState().matchSound) playMatchSound();
+      });
       socket.on("match:ended", ({ reason }) => useChatStore.getState().ended(reason));
       socket.on("chat:message", (message) => useChatStore.getState().receiveMessage(message));
-      socket.on("chat:typing", ({ typing }) => {
-        window.clearTimeout(typingRef.current.partnerTimer);
-        useChatStore.getState().setPartnerTyping(typing);
-        if (typing) {
-          typingRef.current.partnerTimer = window.setTimeout(
+      socket.on("chat:typing", ({ typing: partnerTyping }) => {
+        window.clearTimeout(typing.partnerTimer);
+        useChatStore.getState().setPartnerTyping(partnerTyping);
+        if (partnerTyping) {
+          typing.partnerTimer = window.setTimeout(
             () => useChatStore.getState().setPartnerTyping(false),
             PARTNER_TYPING_TIMEOUT_MS,
           );
         }
       });
+      socket.on("rtc:signal", (signal) => optionsRef.current.onSignal?.(signal));
+      socket.on("media:state", (state) => optionsRef.current.onMediaState?.(state));
     });
 
     return () => {
@@ -107,8 +127,7 @@ export function useChat(mode: ChatMode) {
     const trimmed = text.trim();
     if (!socket || !trimmed) return;
     const localId = `local-${crypto.randomUUID()}`;
-    const store = useChatStore.getState();
-    store.addOwnMessage(localId, trimmed);
+    useChatStore.getState().addOwnMessage(localId, trimmed);
     socket.emit("chat:message", { text: trimmed }, (result) => {
       if (result.ok) useChatStore.getState().confirmOwnMessage(localId, result.data);
       else {
@@ -137,5 +156,13 @@ export function useChat(mode: ChatMode) {
     }, TYPING_IDLE_MS);
   }, []);
 
-  return { start: join, next, stop, block, send, typed };
+  const sendSignal = useCallback((signal: RtcSignal) => {
+    socketRef.current?.emit("rtc:signal", signal);
+  }, []);
+
+  const sendMediaState = useCallback((state: MediaState) => {
+    socketRef.current?.emit("media:state", state);
+  }, []);
+
+  return { start: join, next, stop, block, send, typed, sendSignal, sendMediaState };
 }

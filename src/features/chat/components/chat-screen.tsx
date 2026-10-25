@@ -57,7 +57,7 @@ function Searching() {
 }
 
 export function ChatScreen({ mode }: { mode: ChatMode }) {
-  const { start, next, stop, block, send, typed } = useChat(mode);
+  const { start, next, stop, block, send, typed } = useChat(mode, { autoJoin: true });
   const phase = useChatStore((state) => state.phase);
   const notice = useChatStore((state) => state.notice);
   const unavailableReason = useChatStore((state) => state.unavailableReason);

@@ -28,5 +28,8 @@ Living document; Phase 8 performs the full review.
 
 ## Privacy
 
+- Relay-only video (Settings) forces `iceTransportPolicy: relay`, so partners never learn the device's IP address.
+- Camera and microphone are released when leaving the chat page.
+
 - No analytics or third-party scripts.
 - Preferences (interests, language) stay in localStorage until a chat starts.

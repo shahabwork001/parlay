@@ -35,7 +35,10 @@ export function AccountMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
-          <Link href="/account">Settings</Link>
+          <Link href="/account">Account</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void signOut()}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>

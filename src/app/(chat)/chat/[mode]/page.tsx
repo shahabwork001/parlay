@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ChatScreen } from "@/features/chat/components/chat-screen";
+import { VideoChatScreen } from "@/features/video/components/video-chat-screen";
 import { CHAT_MODES, type ChatMode } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Chat", robots: { index: false } };
@@ -15,5 +16,5 @@ const isChatMode = (value: string): value is ChatMode =>
 export default async function ChatPage({ params }: PageProps<"/chat/[mode]">) {
   const { mode } = await params;
   if (!isChatMode(mode)) notFound();
-  return <ChatScreen mode={mode} />;
+  return mode === "video" ? <VideoChatScreen /> : <ChatScreen mode="text" />;
 }

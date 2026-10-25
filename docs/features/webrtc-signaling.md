@@ -1,6 +1,6 @@
 # Feature: WebRTC signaling and TURN
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Socket.IO-based offer/answer/ICE exchange with STUN/TURN via coturn and time-lim
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 4).
+`src/services/webrtc/peer-session.ts`, `RtcRepository.getIceServers`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 4).
+ICE servers cached in memory for 30 minutes.
 
 ## Business rules
 
@@ -27,8 +27,9 @@ To be defined when implementation starts (planned for Phase 4).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 4.
+Done: perfect negotiation (callee is polite) so either side can renegotiate safely; signals arriving before the peer exists are buffered; ICE restart after 3 s disconnected or on failure; relay-only (iceTransportPolicy relay) when the privacy setting is on.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-26: Implemented in Phase 4 (video chat).

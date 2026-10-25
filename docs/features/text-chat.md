@@ -26,7 +26,7 @@ Chat store (phase, messages, typing, end reason); nothing persisted.
 
 ## Current state (what works, what's missing, known issues)
 
-Done: searching, chatting, ended and stopped states; optimistic messages with sent/failed states; typing indicator (throttled to one signal per 2 s, auto-clears); Enter sends, Shift+Enter adds a line; Esc = Next; Block and Stop; automatic reconnection with token refresh. /chat/video currently runs the same text chat in the video queue until Phase 4 adds the video stage.
+Done: searching, chatting, ended and stopped states; optimistic messages with sent/failed states; typing indicator (throttled to one signal per 2 s, auto-clears); Enter sends, Shift+Enter adds a line; Esc = Next; Block and Stop; automatic reconnection with token refresh. The same chat panel is reused beside the video call.
 
 ## Changelog
 

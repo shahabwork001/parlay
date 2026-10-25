@@ -16,6 +16,8 @@ export interface ChatMessage {
 interface ChatState {
   phase: ChatPhase;
   sessionId: string | null;
+  /** The caller waited longer; in video calls the callee is the "polite" peer. */
+  role: "caller" | "callee" | null;
   sharedInterests: readonly string[];
   messages: readonly ChatMessage[];
   partnerTyping: boolean;
@@ -41,6 +43,7 @@ interface ChatState {
 const initial = {
   phase: "connecting" as ChatPhase,
   sessionId: null,
+  role: null,
   sharedInterests: [],
   messages: [],
   partnerTyping: false,
@@ -57,6 +60,7 @@ export const useChatStore = create<ChatState>()((set) => ({
     set({
       phase: "searching",
       sessionId: null,
+      role: null,
       messages: [],
       partnerTyping: false,
       endedReason: null,
@@ -66,6 +70,7 @@ export const useChatStore = create<ChatState>()((set) => ({
     set({
       phase: "chatting",
       sessionId: match.sessionId,
+      role: match.role,
       sharedInterests: match.sharedInterests,
       messages: [],
       partnerTyping: false,
@@ -75,10 +80,16 @@ export const useChatStore = create<ChatState>()((set) => ({
   ended: (reason) =>
     set((state) =>
       state.phase === "chatting" || state.phase === "searching"
-        ? { phase: "ended", endedReason: reason, partnerTyping: false, sessionId: null }
+        ? {
+            phase: "ended",
+            endedReason: reason,
+            partnerTyping: false,
+            sessionId: null,
+            role: null,
+          }
         : state,
     ),
-  stopped: () => set({ phase: "stopped", sessionId: null, partnerTyping: false }),
+  stopped: () => set({ phase: "stopped", sessionId: null, role: null, partnerTyping: false }),
   unavailable: (reason) => set({ phase: "unavailable", unavailableReason: reason }),
   addOwnMessage: (localId, text) =>
     set((state) => ({

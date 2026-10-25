@@ -1,6 +1,6 @@
 # Feature: User settings
 
-Status: In progress
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Theme, default devices and notification preferences.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 4).
+Route /settings
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 4).
+localStorage `parley.settings` (cameraId, microphoneId, relayOnly, matchSound); theme via next-themes.
 
 ## Business rules
 
@@ -26,9 +26,10 @@ To be defined when implementation starts (planned for Phase 4).
 
 ## Current state (what works, what's missing, known issues)
 
-Theme (light/dark/system) works from the header. The account page covers email, Terms and two-factor settings. Default devices, relay-only video and notification preferences arrive in Phase 4.
+Done: theme (system/light/dark), default camera and microphone, relay-only video (hides IP from partners) and a match chime. Linked from the footer and the account menu.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
 - 2026-10-25: Account settings page added (Phase 2).
+- 2026-10-26: Implemented in Phase 4 (video chat).

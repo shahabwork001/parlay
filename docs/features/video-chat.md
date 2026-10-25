@@ -1,6 +1,6 @@
 # Feature: Video chat
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Camera/mic permission flow, device picker, mirrored preview, mute/camera toggles
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 4).
+Route /chat/video; `useVideoCall`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 4).
+Settings store (camera, microphone, relay-only, match sound) in localStorage.
 
 ## Business rules
 
@@ -27,8 +27,9 @@ To be defined when implementation starts (planned for Phase 4).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 4.
+Done: camera/mic preflight with mirrored preview, device pickers and clear errors (blocked, missing, busy, unsupported) with a text-chat fallback; two panes side by side on desktop and stacked on mobile; one control bar with Next (Esc), mute, camera, chat toggle, quality indicator (good/fair/poor with latency, loss and relay details), Block and Stop; collapsible chat panel; live device switching without renegotiation; partner camera-off state. NSFW screening (blur) arrives in Phase 5.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-26: Implemented in Phase 4 (video chat).

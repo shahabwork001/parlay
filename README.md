@@ -60,4 +60,6 @@ docker compose up -d --build   # http://localhost:3000
 | `/terms`, `/privacy`, `/guidelines`, `/safety`, `/faq`, `/contact`            | Static legal and help pages                                                            |
 | `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Account flows                                                                          |
 | `/account`                                                                    | Email, Terms status and two-factor authentication                                      |
-| `/chat/text`, `/chat/video`                                                   | Random chat (requires an accepted Terms gate)                                          |
+| `/chat/text`                                                                  | Random text chat (requires an accepted Terms gate)                                     |
+| `/chat/video`                                                                 | Random video chat with camera preflight                                                |
+| `/settings`                                                                   | Theme, default camera and microphone, relay-only video, match sound                    |

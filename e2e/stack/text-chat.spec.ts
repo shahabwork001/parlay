@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { type Browser, expect, type Page, test } from "@playwright/test";
+import { type Browser, type BrowserContext, expect, type Page, test } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
+
+const openContexts: BrowserContext[] = [];
+
+test.afterEach(async () => {
+  await Promise.all(openContexts.splice(0).map((context) => context.close()));
+});
 
 /**
  * Two independent browsers (separate cookies, devices and sessions) share a unique interest and pass
@@ -9,7 +15,9 @@ test.describe.configure({ mode: "serial" });
  * never pair with other tests' users.
  */
 async function openGate(browser: Browser, interest: string): Promise<Page> {
-  const page = await (await browser.newContext()).newPage();
+  const context = await browser.newContext();
+  openContexts.push(context);
+  const page = await context.newPage();
   await page.goto("/", { waitUntil: "networkidle" });
   const interests = page.getByRole("textbox", { name: "Interests" });
   await interests.fill(interest);

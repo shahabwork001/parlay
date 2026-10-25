@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-3 implemented. Sections marked _planned_ describe the target design.
+Status: Phases 1-4 implemented. Sections marked _planned_ describe the target design.
 
 ## Layers
 
@@ -56,6 +56,6 @@ sequenceDiagram
   UI-->>U: Partner left; Next or Stop
 ```
 
-## Video call flow (planned, Phase 4)
+## Video call flow (implemented in Phase 4)
 
-The caller creates the offer after `match:found`; SDP and ICE candidates travel over the socket. TURN credentials are fetched from the API per session. On `iceconnectionstatechange = failed` the caller performs an ICE restart; if that fails within a timeout, the session ends with a clear message.
+After `match:found` both sides create an RTCPeerConnection (`PeerSession`) with ICE servers from `RtcRepository` (cached 30 minutes; relay-only when the privacy setting is on). Perfect negotiation: the callee is polite, so offer collisions resolve without deadlock; signals that arrive before the peer exists are buffered. SDP, candidates and mute/camera state travel over the socket as `rtc:signal` and `media:state`. ICE restarts after 3 s in `disconnected` or on `failed`. Stats are sampled every 2 s for the quality indicator. Device switches use `replaceTrack`, so they never renegotiate.

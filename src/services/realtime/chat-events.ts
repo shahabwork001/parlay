@@ -23,6 +23,28 @@ export interface ChatMessagePayload {
   readonly sentAt: string;
 }
 
+/** WebRTC signaling relayed through the server between the two video partners. */
+export type RtcSignal =
+  | {
+      readonly description: {
+        readonly type: "offer" | "answer" | "rollback";
+        readonly sdp: string;
+      };
+    }
+  | {
+      readonly candidate: {
+        readonly candidate: string;
+        readonly sdpMid?: string | null;
+        readonly sdpMLineIndex?: number | null;
+        readonly usernameFragment?: string | null;
+      };
+    };
+
+export interface MediaState {
+  readonly audio: boolean;
+  readonly video: boolean;
+}
+
 export interface JoinRequest {
   readonly mode: ChatMode;
   readonly language: string;
@@ -34,6 +56,8 @@ export interface ServerToClientEvents {
   "match:ended": (payload: { readonly sessionId: string; readonly reason: EndReason }) => void;
   "chat:message": (payload: ChatMessagePayload) => void;
   "chat:typing": (payload: { readonly typing: boolean }) => void;
+  "rtc:signal": (payload: RtcSignal) => void;
+  "media:state": (payload: MediaState) => void;
 }
 
 export interface ClientToServerEvents {
@@ -49,6 +73,8 @@ export interface ClientToServerEvents {
     ack: (result: Ack<ChatMessagePayload>) => void,
   ) => void;
   "chat:typing": (payload: { typing: boolean }) => void;
+  "rtc:signal": (payload: RtcSignal) => void;
+  "media:state": (payload: MediaState) => void;
 }
 
 /** Errors the server reports in `connect_error.message`. */

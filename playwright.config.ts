@@ -21,7 +21,18 @@ export default defineConfig({
   },
   projects: [
     { name: "frontend", testIgnore: /stack\//, use: { ...devices["Desktop Chrome"] } },
-    { name: "stack", testMatch: /stack\/.*\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "stack",
+      testMatch: /stack\/.*\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        // Synthetic camera and microphone, granted without a prompt, for the video specs.
+        permissions: ["camera", "microphone"],
+        launchOptions: {
+          args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
+        },
+      },
+    },
   ],
   webServer: useExistingServer
     ? undefined
