@@ -1,6 +1,6 @@
 # Feature: Interest and language matching
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Prefer partners with shared interests and language, falling back to random after
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 3).
+`queue:join` from the chat page with the saved preferences
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 3).
+Preferences store (interests, language).
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 3).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 3.
+Done: interests and language from the landing page are sent on every search; the chat shows the shared interests when matched.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).

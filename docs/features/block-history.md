@@ -1,6 +1,6 @@
 # Feature: Block and skip history
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Never re-match a user you blocked.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 3).
+Block button during a chat
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 3).
+None.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 3).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 3.
+Done: one-click Block with a confirmation line in the conversation.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).

@@ -1,6 +1,6 @@
 # Feature: Presence and disconnect detection
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Heartbeat-based presence so partners are notified immediately on tab close or ne
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 3).
+socket.io-client reconnection (0.5-5 s backoff with jitter)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 3).
+None.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 3).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 3.
+Done: a dropped connection ends a live chat with a clear message; a search survives reconnection and rejoins automatically.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).

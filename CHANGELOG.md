@@ -4,6 +4,30 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 3: matchmaking and text chat)
+
+- Chat page `/chat/text` (and `/chat/video`, text-only until Phase 4): searching, chatting, ended and stopped states.
+- Socket.IO connection with the access token in the handshake, automatic token refresh on `auth.required`, reconnection with backoff; a search survives reconnects.
+- Messages with optimistic sending, delivery and failure states; typing indicator; Enter to send, Shift+Enter for a new line, Esc for Next; Block and Stop.
+- Shared interests shown when matched.
+- Unit tests for the chat store and composer; Playwright specs with two browsers: matching, messaging, typing, Next, tab close and block.
+
+### Changed
+
+- The dialog overlay is a plain dim layer (no backdrop blur).
+
+### Added (Phase 3: matchmaking and text chat)
+
+- Chat page `/chat/text` (and `/chat/video`, text-only until Phase 4): searching, chatting, ended and stopped states.
+- Socket.IO connection with the access token in the handshake, automatic token refresh on `auth.required`, reconnection with backoff; a search survives reconnects.
+- Messages with optimistic sending, delivery and failure states; typing indicator; Enter to send, Shift+Enter for a new line, Esc for Next; Block and Stop.
+- Shared interests shown when matched.
+- Unit tests for the chat store and composer; Playwright specs with two browsers: matching, messaging, typing, Next, tab close and block.
+
+### Changed
+
+- The dialog overlay is a plain dim layer (no backdrop blur).
+
 ### Added (Phase 2: identity)
 
 - Static pages: Terms, Privacy, Community Guidelines, Safety tips, FAQ and Contact.

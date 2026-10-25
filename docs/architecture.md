@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phase 1 (foundation). Sections marked _planned_ describe the target design.
+Status: Phases 1-3 implemented. Sections marked _planned_ describe the target design.
 
 ## Layers
 
@@ -36,7 +36,7 @@ flowchart TB
 | Real-time session  | Zustand (planned)                             | match state, partner typing    |
 | Theme              | next-themes (class strategy)                  | light / dark / system          |
 
-## Text chat flow (planned, Phase 3)
+## Text chat flow (implemented in Phase 3)
 
 ```mermaid
 sequenceDiagram

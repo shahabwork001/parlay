@@ -1,0 +1,58 @@
+/**
+ * Socket.IO contract, mirroring the backend's `src/api/realtime/chat-events.ts`.
+ * Keep both files in sync (see backend docs/api.md, "Socket.IO events").
+ */
+import type { ChatMode } from "@/lib/constants";
+
+export type EndReason = "skipped" | "left" | "disconnected";
+
+export type Ack<T> =
+  | { readonly ok: true; readonly data: T }
+  | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } };
+
+export interface MatchFound {
+  readonly sessionId: string;
+  readonly mode: ChatMode;
+  readonly role: "caller" | "callee";
+  readonly sharedInterests: readonly string[];
+}
+
+export interface ChatMessagePayload {
+  readonly id: string;
+  readonly text: string;
+  readonly sentAt: string;
+}
+
+export interface JoinRequest {
+  readonly mode: ChatMode;
+  readonly language: string;
+  readonly interests: readonly string[];
+}
+
+export interface ServerToClientEvents {
+  "match:found": (payload: MatchFound) => void;
+  "match:ended": (payload: { readonly sessionId: string; readonly reason: EndReason }) => void;
+  "chat:message": (payload: ChatMessagePayload) => void;
+  "chat:typing": (payload: { readonly typing: boolean }) => void;
+}
+
+export interface ClientToServerEvents {
+  "queue:join": (
+    payload: JoinRequest,
+    ack: (result: Ack<{ status: "matched" | "queued" }>) => void,
+  ) => void;
+  "queue:leave": (ack: (result: Ack<null>) => void) => void;
+  "match:next": (ack: (result: Ack<{ status: "matched" | "queued" }>) => void) => void;
+  "match:block": (ack: (result: Ack<null>) => void) => void;
+  "chat:message": (
+    payload: { text: string },
+    ack: (result: Ack<ChatMessagePayload>) => void,
+  ) => void;
+  "chat:typing": (payload: { typing: boolean }) => void;
+}
+
+/** Errors the server reports in `connect_error.message`. */
+export const CONNECT_ERRORS = {
+  authRequired: "auth.required",
+  termsOutdated: "terms.outdated",
+} as const;
