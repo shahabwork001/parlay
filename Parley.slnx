@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Parley.Api/Parley.Api.csproj" />
+    <Project Path="src/Parley.Application/Parley.Application.csproj" />
+    <Project Path="src/Parley.Domain/Parley.Domain.csproj" />
+    <Project Path="src/Parley.Infrastructure/Parley.Infrastructure.csproj" />
+    <Project Path="src/Parley.Workers/Parley.Workers.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Parley.IntegrationTests/Parley.IntegrationTests.csproj" />
+    <Project Path="tests/Parley.UnitTests/Parley.UnitTests.csproj" />
+  </Folder>
+</Solution>
