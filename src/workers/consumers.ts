@@ -1,3 +1,4 @@
+import { PartnerBlocked, RecordPartnerBlock } from "../application/features/chat/blocks.js";
 import { EmailRequested } from "../application/features/identity/events.js";
 import { SendRequestedEmail } from "../application/features/notifications/send-requested-email.js";
 import type { WorkersConfig } from "../infrastructure/config/config.js";
@@ -5,6 +6,7 @@ import type { EmailSender } from "../application/features/notifications/send-req
 import type { Infrastructure } from "../infrastructure/infrastructure.js";
 import { type MessageConsumer, RabbitMqConsumer } from "../infrastructure/messaging/rabbitmq-consumer.js";
 import type { Logger } from "../infrastructure/observability/logger.js";
+import { MongoBlockRepository } from "../infrastructure/persistence/mongo/block-repository.js";
 
 export interface WorkerDependencies {
   readonly infrastructure: Infrastructure;
@@ -35,6 +37,16 @@ export function createConsumers(dependencies: WorkerDependencies): MessageConsum
         ...consumerOptions,
       },
       logger.child({ consumer: "notifications.email" }),
+    ),
+    new RabbitMqConsumer(
+      infrastructure.rabbitMq,
+      {
+        subscriber: "chat",
+        definition: PartnerBlocked,
+        handler: new RecordPartnerBlock(new MongoBlockRepository(infrastructure.database)),
+        ...consumerOptions,
+      },
+      logger.child({ consumer: "chat.blocks" }),
     ),
   ];
 }

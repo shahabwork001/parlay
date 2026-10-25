@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 3: matchmaking and text chat)
+
+- Socket.IO gateway with the Redis adapter; handshake authentication requiring a current Terms acceptance; zod validation and acks on every event.
+- Redis matchmaking in atomic Lua scripts: separate text and video queues, shared-interest preference, language filter, random fallback after `MATCH_INTEREST_FALLBACK_MS`, blocks in both directions, no immediate re-match of recent partners. Verified free of double matches under 200 concurrent joins (ADR 0011).
+- Text chat relay with delivery acks, typing indicator, link removal, profanity masking and per-connection flood control.
+- Next, Stop and Block; partners are notified immediately on Next, leave, block or disconnect.
+- Presence keys and a lease-guarded sweeper that ends sessions of participants on crashed instances.
+- Blocks persisted asynchronously by the workers (`chat.partner-blocked.v1` to MongoDB `blocks`).
+- 11 new unit tests and 22 new integration tests (140 unit and 46 integration in total).
+
 ### Added (Phase 2: identity)
 
 - Anonymous device sessions behind the 18+ and Terms gate; device fingerprints stored only as HMACs.

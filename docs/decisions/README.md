@@ -13,4 +13,6 @@ Short records of significant technical choices. Template: Context, Decision, Con
 | [0007](0007-mongo-standalone.md)     | Standalone MongoDB, single-document atomicity              | Accepted |
 | [0008](0008-testing-stack.md)        | Vitest, supertest and Testcontainers                       | Accepted |
 | [0009](0009-config-and-logging.md)   | zod-validated configuration and pino logging               | Accepted |
+| [0011](0011-redis-matchmaking.md)    | Matchmaking in atomic Redis Lua scripts                    | Accepted |
 | [0010](0010-session-tokens.md)       | Short-lived JWT access tokens and rotating refresh cookies | Accepted |
+| [0011](0011-redis-matchmaking.md)    | Matchmaking in atomic Redis Lua scripts                    | Accepted |

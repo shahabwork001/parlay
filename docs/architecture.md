@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phase 1 (foundation). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
+Status: Phases 1-3 implemented (foundation, identity, matchmaking and text chat). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
 
@@ -97,7 +97,7 @@ sequenceDiagram
 - **Refresh families**: every sign-in or anonymous session starts a family, and each refresh replaces its token. Replaying a used token more than 5 seconds later revokes the family. Password reset and 2FA enrolment revoke every family of the account.
 - **Seed**: `src/tools/seed.ts` creates the first SuperAdmin (idempotent), who must enrol 2FA before staff permissions apply.
 
-## Matchmaking flow (planned, Phase 3)
+## Matchmaking flow (implemented in Phase 3)
 
 ```mermaid
 sequenceDiagram
@@ -106,7 +106,7 @@ sequenceDiagram
   participant R as Redis
   participant B as Client B
   A->>G: queue:join(mode, interests, language)
-  G->>R: check bans / rate limit
+  G->>G: validate payload (zod); principal from the handshake token
   G->>R: EVAL pair.lua (atomic: find compatible waiting user or enqueue)
   alt partner found
     R-->>G: partner B, session id
@@ -114,9 +114,15 @@ sequenceDiagram
     G-->>B: match:found(sessionId, role=callee)
   else nobody compatible
     R-->>G: enqueued
-    G-->>A: queue:searching
+    G-->>A: ack { status: queued } (retries every 2 s)
   end
 ```
+
+- **Atomic pairing**: one Lua script reads the queue oldest-first (up to 200 tickets), skips blocked, recent and language-incompatible candidates, picks the most shared interests, and either creates the session for both or queues the caller. Concurrent joins cannot double-match.
+- **Interest fallback**: someone with interests pairs without a shared interest only once both sides have waited `MATCH_INTEREST_FALLBACK_MS`. Waiting sockets retry every 2 s and keep their original enqueue time.
+- **Events across instances**: every socket joins the room `subject:{id}`; the Redis adapter delivers `io.to(room).emit` to whichever instance holds the socket.
+- **Presence**: each instance refreshes `mm:presence:{subject}` for its sockets every 10 s (30 s TTL). A sweeper, run by one instance at a time under a Redis lease, ends sessions and clears tickets of subjects without presence (for example after an instance crash).
+- **Ban checks and trust pools** hook into the connect step and the pairing script in Phase 5.
 
 ## WebRTC signaling (planned, Phase 4)
 

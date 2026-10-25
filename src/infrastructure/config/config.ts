@@ -43,6 +43,7 @@ const apiSchema = infrastructureSchema.extend({
   TOTP_ENCRYPTION_KEY: base64Key,
   TERMS_VERSION: z.string().min(1).max(32).default("2026-10-25"),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().int().min(1).max(1000).default(1),
+  MATCH_INTEREST_FALLBACK_MS: z.coerce.number().int().min(0).max(60_000).default(5000),
 });
 
 const workersSchema = infrastructureSchema.extend({
@@ -90,6 +91,8 @@ export interface ApiConfig extends InfrastructureConfig {
   readonly termsVersion: string;
   /** Scales every rate limit (1 in production; raised for local end-to-end test runs). */
   readonly rateLimitMultiplier: number;
+  /** Wait before someone with interests may be matched with anyone. */
+  readonly matchInterestFallbackMs: number;
 }
 
 export interface WorkersConfig extends InfrastructureConfig {
@@ -155,6 +158,7 @@ export function loadApiConfig(environment: Environment = process.env): ApiConfig
     },
     termsVersion: values.TERMS_VERSION,
     rateLimitMultiplier: values.RATE_LIMIT_MULTIPLIER,
+    matchInterestFallbackMs: values.MATCH_INTEREST_FALLBACK_MS,
   };
 }
 

@@ -1,6 +1,6 @@
 # Feature: Block and skip history
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Never re-match a user you blocked.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 3).
+`match:block`; event `chat.partner-blocked.v1` (API -> workers)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 3).
+Redis `mm:blocks:{subject}` (hot path); MongoDB `blocks` collection (durable, idempotent by blocker:blocked).
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 3).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 3.
+Done: blocking ends the chat (the partner sees an ordinary 'left'), and the blocker never matches that account or device again, in either direction. Recent partners are also not re-matched for 60 s after Next.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).

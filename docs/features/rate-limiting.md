@@ -31,3 +31,4 @@ Auth endpoints are limited per hashed IP (login 10/min, register 5/h, anonymous 
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
 - 2026-10-25: Implemented in Phase 2 (identity).
+- 2026-10-25: Per-connection chat flood control (Phase 3).

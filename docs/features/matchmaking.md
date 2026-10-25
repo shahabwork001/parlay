@@ -1,6 +1,6 @@
 # Feature: Matchmaking
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,15 @@ Pair waiting users in under one second (p95) using atomic Redis operations.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 3).
+Socket.IO (same origin as the API, token in the handshake `auth.token`):
+
+- client -> server: `queue:join` {mode, language, interests}, `match:next`, `queue:leave`, `match:block`, `chat:message` {text}, `chat:typing` {typing}; every call acknowledges `{ok, data | error}`
+- server -> client: `match:found` {sessionId, mode, role, sharedInterests}, `match:ended` {sessionId, reason: skipped | left | disconnected}, `chat:message` {id, text, sentAt}, `chat:typing` {typing}
+- connect errors: `auth.required`, `terms.outdated`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 3).
+Redis (prefix `mm`): `queue:{mode}` (ZSET by enqueue time), `ticket:{subject}` (HASH: device, language, interests, enqueuedAt), `active:{subject}` -> session id, `session:{id}` (HASH: caller, callee, devices, mode, startedAt, shared), `sessions` (SET), `blocks:{subject}` (SET of subject and device ids), `recent:{subject}` (ZSET, 1 h), `presence:{subject}` (30 s TTL).
 
 ## Business rules
 
@@ -28,8 +32,9 @@ To be defined when implementation starts (planned for Phase 3).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 3.
+Done: pairing is one atomic Lua script (no double matches; verified with 200 concurrent joins). Waiting participants retry every 2 s so the interest fallback applies; the longer-waiting participant becomes the caller. Separate text and video queues. A participant is in at most one session. Shadow-ban and low-trust pools arrive in Phase 5. Scale note: each attempt scans up to 200 waiting tickets.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).

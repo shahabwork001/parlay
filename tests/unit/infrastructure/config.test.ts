@@ -36,6 +36,7 @@ describe("loadApiConfig", () => {
     expect(config.auth).toMatchObject({ accessTokenTtlSeconds: 900, refreshTokenTtlMs: 30 * 86_400_000 });
     expect(config.termsVersion).toBe("2026-10-25");
     expect(config.rateLimitMultiplier).toBe(1);
+    expect(config.matchInterestFallbackMs).toBe(5000);
   });
 
   it("coerces numbers and booleans and trims the frontend URL", () => {

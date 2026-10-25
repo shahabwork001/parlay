@@ -67,12 +67,28 @@ Session responses: `{ accessToken, accessTokenExpiresAt, principal: { kind, role
 
 ## Socket.IO events
 
-None yet. The gateway arrives in Phase 3.
+Connect to the API origin with `socket.io-client` and `auth: { token: <access token> }`. The handshake is rejected with `connect_error` `auth.required` (missing or invalid token) or `terms.outdated` (the accepted Terms version is not current). Every client event with a callback receives `{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
+
+| Direction        | Event          | Payload                                                                             | Ack data / notes                                                                      |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| client to server | `queue:join`   | `{ mode: text or video, language: any or ISO 639-1, interests: string[] (max 10) }` | `{ status: matched or queued }`; ends any current chat first                          |
+| client to server | `match:next`   | none                                                                                | `{ status }`; ends the chat (partner reason `skipped`) and searches again             |
+| client to server | `queue:leave`  | none                                                                                | `null`; ends the chat (partner reason `left`) and leaves the queue                    |
+| client to server | `match:block`  | none                                                                                | `null`; ends the chat (partner sees `left`) and blocks the partner account and device |
+| client to server | `chat:message` | `{ text }` (max 1000 after trimming)                                                | `{ id, text, sentAt }` with the cleaned text                                          |
+| client to server | `chat:typing`  | `{ typing: boolean }`                                                               | no ack                                                                                |
+| server to client | `match:found`  | `{ sessionId, mode, role: caller or callee, sharedInterests }`                      | the caller creates the WebRTC offer (Phase 4)                                         |
+| server to client | `match:ended`  | `{ sessionId, reason: skipped, left or disconnected }`                              |                                                                                       |
+| server to client | `chat:message` | `{ id, text, sentAt }`                                                              |                                                                                       |
+| server to client | `chat:typing`  | `{ typing }`                                                                        |                                                                                       |
+
+Ack error codes: `validation`, `chat.no_partner`, `rate_limited` (10-message burst, 3 per second sustained, per connection), `internal`. The TypeScript contract lives in `src/api/realtime/chat-events.ts` and is mirrored in the frontend at `src/services/realtime/chat-events.ts`.
 
 ## Integration events
 
-| Routing key                        | Publisher      | Consumer                | Payload                                                                   |
-| ---------------------------------- | -------------- | ----------------------- | ------------------------------------------------------------------------- |
-| `notifications.email-requested.v1` | API (identity) | workers `notifications` | `{ to, template: verify-email, account-exists or password-reset, link? }` |
+| Routing key                        | Publisher          | Consumer                          | Payload                                                                               |
+| ---------------------------------- | ------------------ | --------------------------------- | ------------------------------------------------------------------------------------- |
+| `notifications.email-requested.v1` | API (identity)     | workers `notifications`           | `{ to, template: verify-email, account-exists or password-reset, link? }`             |
+| `chat.partner-blocked.v1`          | API (chat gateway) | workers `chat` (MongoDB `blocks`) | `{ blockerSubjectId, blockerDeviceId, blockedSubjectId, blockedDeviceId, blockedAt }` |
 
 Conventions: see [architecture.md](architecture.md#messaging-implemented-in-phase-1).
