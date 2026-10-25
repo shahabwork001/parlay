@@ -10,8 +10,7 @@ const healthReport = z
   })
   .meta({ id: "HealthReport" });
 
-function buildRegistry(): OpenAPIRegistry {
-  const registry = new OpenAPIRegistry();
+function registerHealth(registry: OpenAPIRegistry): void {
   registry.registerPath({
     method: "get",
     path: "/health/live",
@@ -19,7 +18,6 @@ function buildRegistry(): OpenAPIRegistry {
     summary: "Liveness: the process is running",
     responses: { 200: { description: "Alive", content: { "application/json": { schema: healthReport } } } },
   });
-
   registry.registerPath({
     method: "get",
     path: "/health/ready",
@@ -33,13 +31,25 @@ function buildRegistry(): OpenAPIRegistry {
       },
     },
   });
-
-  return registry;
 }
 
-export function buildOpenApiDocument(): ReturnType<OpenApiGeneratorV31["generateDocument"]> {
-  return new OpenApiGeneratorV31(buildRegistry().definitions).generateDocument({
+export type OpenApiRegistration = (registry: OpenAPIRegistry) => void;
+
+/** Builds the OpenAPI 3.1 document from the health routes plus each feature's registration. */
+export function buildOpenApiDocument(
+  registrations: readonly OpenApiRegistration[],
+): ReturnType<OpenApiGeneratorV31["generateDocument"]> {
+  const registry = new OpenAPIRegistry();
+  registry.registerComponent("securitySchemes", "bearerAuth", {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT",
+  });
+  registerHealth(registry);
+  for (const register of registrations) register(registry);
+
+  return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: "3.1.0",
-    info: { title: "Parley API", version: "0.1.0" },
+    info: { title: "Parley API", version: "0.2.0" },
   });
 }

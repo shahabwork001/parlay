@@ -7,11 +7,11 @@ Status values: Not started, In progress, Done, Blocked.
 | Feature                              | Status      | Layer   | Phase | Doc                                                                                |
 | ------------------------------------ | ----------- | ------- | ----- | ---------------------------------------------------------------------------------- |
 | Platform foundation                  | Done        | FE + BE | 1     | [docs/features/foundation.md](docs/features/foundation.md)                         |
-| Age and terms gate                   | Not started | FE + BE | 2     | [docs/features/age-terms-gate.md](docs/features/age-terms-gate.md)                 |
-| Anonymous sessions                   | Not started | FE + BE | 2     | [docs/features/anonymous-sessions.md](docs/features/anonymous-sessions.md)         |
-| Accounts and authentication          | Not started | FE + BE | 2     | [docs/features/accounts.md](docs/features/accounts.md)                             |
-| Roles and permissions                | Not started | FE + BE | 2     | [docs/features/roles-permissions.md](docs/features/roles-permissions.md)           |
-| Staff two-factor authentication      | Not started | FE + BE | 2     | [docs/features/staff-2fa.md](docs/features/staff-2fa.md)                           |
+| Age and terms gate                   | Done        | FE + BE | 2     | [docs/features/age-terms-gate.md](docs/features/age-terms-gate.md)                 |
+| Anonymous sessions                   | Done        | FE + BE | 2     | [docs/features/anonymous-sessions.md](docs/features/anonymous-sessions.md)         |
+| Accounts and authentication          | Done        | FE + BE | 2     | [docs/features/accounts.md](docs/features/accounts.md)                             |
+| Roles and permissions                | Done        | FE + BE | 2     | [docs/features/roles-permissions.md](docs/features/roles-permissions.md)           |
+| Staff two-factor authentication      | Done        | FE + BE | 2     | [docs/features/staff-2fa.md](docs/features/staff-2fa.md)                           |
 | Matchmaking                          | Not started | BE      | 3     | [docs/features/matchmaking.md](docs/features/matchmaking.md)                       |
 | Interest and language matching       | Not started | FE + BE | 3     | [docs/features/interest-matching.md](docs/features/interest-matching.md)           |
 | Text chat                            | Not started | FE + BE | 3     | [docs/features/text-chat.md](docs/features/text-chat.md)                           |
@@ -23,7 +23,7 @@ Status values: Not started, In progress, Done, Blocked.
 | Client-side NSFW screening           | Not started | FE + BE | 5     | [docs/features/client-nsfw-screening.md](docs/features/client-nsfw-screening.md)   |
 | Server-side moderation pipeline      | Not started | BE      | 5     | [docs/features/moderation-pipeline.md](docs/features/moderation-pipeline.md)       |
 | Text moderation                      | Not started | FE + BE | 5     | [docs/features/text-moderation.md](docs/features/text-moderation.md)               |
-| Rate limiting                        | Not started | BE      | 5     | [docs/features/rate-limiting.md](docs/features/rate-limiting.md)                   |
+| Rate limiting                        | In progress | BE      | 5     | [docs/features/rate-limiting.md](docs/features/rate-limiting.md)                   |
 | Ban system                           | Not started | FE + BE | 5     | [docs/features/ban-system.md](docs/features/ban-system.md)                         |
 | Trust score                          | Not started | BE      | 5     | [docs/features/trust-score.md](docs/features/trust-score.md)                       |
 | Minor safety escalation              | Not started | FE + BE | 5     | [docs/features/minor-safety.md](docs/features/minor-safety.md)                     |

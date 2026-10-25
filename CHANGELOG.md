@@ -4,6 +4,18 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 2: identity)
+
+- Anonymous device sessions behind the 18+ and Terms gate; device fingerprints stored only as HMACs.
+- Accounts: registration without account enumeration, email confirmation, sign-in with lockout and timing equalisation, password reset that signs out everywhere.
+- 15-minute JWT access tokens and rotating refresh tokens (httpOnly, Secure, SameSite=Strict cookie) with reuse detection (ADR 0010).
+- Roles (SuperAdmin, Admin, Moderator, Support), permission catalogue and `requirePermission` middleware requiring multi-factor sessions for staff.
+- TOTP two-factor authentication with encrypted secrets and single-use recovery codes.
+- Redis sliding-window rate limiting on every auth endpoint, scaled by `RATE_LIMIT_MULTIPLIER`.
+- Transactional email through RabbitMQ to the workers and SMTP (Mailpit locally).
+- Seed tool for the first SuperAdmin; `init-env.sh` now adds missing keys to an existing `.env`.
+- 66 new unit tests and 13 new integration tests (129 unit and 24 integration in total).
+
 ### Changed
 
 - **Breaking:** the backend is now Node.js 24 + Express 5 + TypeScript instead of .NET 10 (ADR 0001). Real-time transport will be Socket.IO with the Redis adapter instead of SignalR (ADR 0002). The unbuilt .NET scaffold was removed.

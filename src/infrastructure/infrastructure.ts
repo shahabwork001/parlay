@@ -8,7 +8,13 @@ import { RabbitMqConnection, RabbitMqHealthCheck } from "./messaging/rabbitmq-co
 import { RabbitMqEventPublisher } from "./messaging/rabbitmq-event-publisher.js";
 import type { Logger } from "./observability/logger.js";
 import { MongoHealthCheck } from "./persistence/mongo/mongo-health-check.js";
-import { applyMongoIndexes, MONGO_INDEXES } from "./persistence/mongo/mongo-indexes.js";
+import { TOKEN_INDEXES } from "./identity/mongo-token-stores.js";
+import { DEVICE_INDEXES } from "./persistence/mongo/device-repository.js";
+import { applyMongoIndexes, type MongoIndexDefinition } from "./persistence/mongo/mongo-indexes.js";
+import { USER_INDEXES } from "./persistence/mongo/user-repository.js";
+
+/** Every collection's indexes. Features add their definitions here. */
+const MONGO_INDEXES: readonly MongoIndexDefinition[] = [USER_INDEXES, DEVICE_INDEXES, ...TOKEN_INDEXES];
 
 /** Composition root for infrastructure shared by the API and the workers. */
 export interface Infrastructure {

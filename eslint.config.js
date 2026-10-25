@@ -28,6 +28,7 @@ export default tseslint.config(
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "@typescript-eslint/no-extraneous-class": "off",
       "no-console": "error",
+      curly: ["error", "multi-line"],
     },
   },
   layer(
@@ -47,6 +48,7 @@ export default tseslint.config(
   ),
   layer(["src/api/**"], ["**/workers/**"], "The API host must not import the workers host."),
   layer(["src/workers/**"], ["**/api/**"], "The workers host must not import the API host."),
+  layer(["src/tools/**"], ["**/api/**", "**/workers/**"], "Tools must not import the hosts."),
   {
     files: ["tests/**", "vitest.config.ts", "eslint.config.js"],
     rules: {

@@ -35,7 +35,13 @@ export interface ConsumerOptions<TPayload> {
  * The queue's own `x-delivery-limit` still guards against consumers that crash mid-message.
  * Re-subscribes automatically after a broker reconnect.
  */
-export class RabbitMqConsumer<TPayload> {
+export interface MessageConsumer {
+  readonly queue: string;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+}
+
+export class RabbitMqConsumer<TPayload> implements MessageConsumer {
   readonly queue: string;
   readonly #envelope: z.ZodType<IntegrationEvent<TPayload>>;
   #channel: ConfirmChannel | null = null;

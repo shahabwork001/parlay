@@ -7,9 +7,6 @@ export interface MongoIndexDefinition {
   readonly indexes: readonly IndexDescription[];
 }
 
-/** Every collection's index definition. Features register theirs here. */
-export const MONGO_INDEXES: readonly MongoIndexDefinition[] = [];
-
 /** Idempotent: `createIndexes` is a no-op for indexes that already exist with the same spec. */
 export async function applyMongoIndexes(
   database: Db,

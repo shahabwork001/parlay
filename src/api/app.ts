@@ -1,21 +1,33 @@
 import { randomUUID } from "node:crypto";
 import { apiReference } from "@scalar/express-api-reference";
 import compression from "compression";
+import cookieParser from "cookie-parser";
 import cors from "cors";
-import express, { type Express } from "express";
+import express, { type Express, type RequestHandler, type Router } from "express";
 import { pinoHttp } from "pino-http";
 import type { HealthCheck } from "../infrastructure/health/health-check.js";
 import { createHealthRouter } from "../infrastructure/health/health-router.js";
 import type { Logger } from "../infrastructure/observability/logger.js";
 import { errorHandler, notFoundHandler } from "./middleware/error-handlers.js";
 import { apiSecurityHeaders, docsSecurityHeaders } from "./middleware/security-headers.js";
-import { buildOpenApiDocument } from "./openapi/openapi-document.js";
+import { buildOpenApiDocument, type OpenApiRegistration } from "./openapi/openapi-document.js";
+
+/** A feature's HTTP surface: a router mounted under /api/v1 and its OpenAPI registration. */
+export interface ApiFeature {
+  readonly router: Router;
+  readonly openApi: OpenApiRegistration;
+}
 
 export interface AppDependencies {
   readonly logger: Logger;
   readonly corsAllowedOrigins: readonly string[];
   readonly healthChecks: readonly HealthCheck[];
   readonly enableApiReference: boolean;
+  /** Express "trust proxy" value so req.ip is the real client behind load balancers. */
+  readonly trustProxy: string;
+  /** Resolves the caller from the access token (sets res.locals.principal). */
+  readonly authenticate: RequestHandler;
+  readonly features: readonly ApiFeature[];
 }
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
@@ -24,6 +36,7 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
 export function createApp(dependencies: AppDependencies): Express {
   const app = express();
   app.disable("x-powered-by");
+  app.set("trust proxy", dependencies.trustProxy);
 
   app.use(
     pinoHttp({
@@ -60,11 +73,13 @@ export function createApp(dependencies: AppDependencies): Express {
   );
   app.use(compression());
   app.use(express.json({ limit: "100kb" }));
+  app.use(cookieParser());
 
   app.use(createHealthRouter(dependencies.healthChecks, dependencies.logger));
+  app.use("/api/v1", dependencies.authenticate, ...dependencies.features.map((feature) => feature.router));
 
   if (dependencies.enableApiReference) {
-    const document = buildOpenApiDocument();
+    const document = buildOpenApiDocument(dependencies.features.map((feature) => feature.openApi));
     app.get("/openapi.json", (_request, response) => {
       response.json(document);
     });

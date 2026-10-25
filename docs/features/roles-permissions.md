@@ -1,6 +1,6 @@
 # Feature: Roles and permissions
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ SuperAdmin, Admin, Moderator and Support roles mapped to fine-grained permission
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+`requirePermission(permission)` middleware; roles in the access token (`rol` claim, validated on every request)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+`src/domain/identity/roles.ts`: ROLES, PERMISSIONS and ROLE_PERMISSIONS (single source of truth).
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: SuperAdmin (all), Admin (all but staff management), Moderator (review, act, escalate, bans, appeals, users view), Support (dashboard, users view, appeals). Permissions are checked per route and require a multi-factor session. Admin routes that use them arrive in Phase 6.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

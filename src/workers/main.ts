@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import express from "express";
 import { loadWorkersConfig } from "../infrastructure/config/config.js";
+import { SmtpEmailSender } from "../infrastructure/email/smtp-email-sender.js";
 import { createHealthRouter } from "../infrastructure/health/health-router.js";
 import { createInfrastructure } from "../infrastructure/infrastructure.js";
 import { createLogger } from "../infrastructure/observability/logger.js";
@@ -17,7 +18,9 @@ const logger = createLogger({
 });
 const infrastructure = await createInfrastructure(config, logger, SERVICE_NAME);
 
-const consumers = createConsumers(infrastructure, config, logger);
+const emailSender = new SmtpEmailSender(config.smtp);
+
+const consumers = createConsumers({ infrastructure, config, logger, emailSender });
 await Promise.all(consumers.map((consumer) => consumer.start()));
 
 const app = express();
@@ -35,5 +38,6 @@ onShutdown(logger, async () => {
     }),
   );
   await Promise.allSettled(consumers.map((consumer) => consumer.stop()));
+  emailSender.close();
   await infrastructure.close();
 });

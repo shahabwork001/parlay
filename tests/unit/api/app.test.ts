@@ -2,6 +2,7 @@ import { pino } from "pino";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../../src/api/app.js";
+import { testAppDefaults } from "../../support/app-defaults.js";
 import type { HealthCheck, HealthStatus } from "../../../src/infrastructure/health/health-check.js";
 import { createLogger } from "../../../src/infrastructure/observability/logger.js";
 
@@ -14,7 +15,13 @@ const check = (name: string, status: HealthStatus): HealthCheck => ({
 });
 
 const buildApp = (checks: HealthCheck[] = [check("mongodb", "Healthy")], enableApiReference = false) =>
-  createApp({ logger, corsAllowedOrigins: [FRONTEND], healthChecks: checks, enableApiReference });
+  createApp({
+    ...testAppDefaults,
+    logger,
+    corsAllowedOrigins: [FRONTEND],
+    healthChecks: checks,
+    enableApiReference,
+  });
 
 describe("health endpoints", () => {
   it("liveness reports healthy without dependency checks", async () => {
@@ -91,6 +98,7 @@ describe("cross-cutting behaviour", () => {
     const lines: string[] = [];
     const capturingLogger = pino({ level: "info" }, { write: (line: string) => lines.push(line) });
     const app = createApp({
+      ...testAppDefaults,
       logger: capturingLogger,
       corsAllowedOrigins: [FRONTEND],
       healthChecks: [],

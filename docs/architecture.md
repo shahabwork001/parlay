@@ -67,6 +67,36 @@ flowchart LR
   DLX --> D1[parley.moderation.reports.created.v1.dead-letter]
 ```
 
+## Identity and sessions (implemented in Phase 2)
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant A as API
+  participant M as MongoDB
+  participant Q as RabbitMQ
+  participant W as Workers
+  participant S as SMTP (Mailpit)
+  B->>A: POST /auth/register (email, password, 18+, terms version)
+  A->>M: insert user (Argon2id hash) and one-time token (hashed)
+  A->>Q: notifications.email-requested.v1
+  A-->>B: 202 (identical when the email exists)
+  Q->>W: deliver
+  W->>S: confirmation email with link
+  B->>A: POST /auth/verify-email (token)
+  B->>A: POST /auth/login (+ TOTP when enabled)
+  A-->>B: access token (body) and refresh cookie (httpOnly)
+  Note over B,A: the access token expires after 15 minutes
+  B->>A: POST /auth/refresh (cookie)
+  A->>M: claim the token once (usedAt), issue the next token in the family
+  A-->>B: new access token and rotated cookie
+```
+
+- **Principals**: `user` (account) or `anonymous` (device). Both carry the accepted Terms version; staff also carry roles and an `mfa` flag.
+- **Devices**: the browser sends a SHA-256 fingerprint and the API stores only an HMAC of it. Devices are the unit for anonymous sessions and, from Phase 5, device bans.
+- **Refresh families**: every sign-in or anonymous session starts a family, and each refresh replaces its token. Replaying a used token more than 5 seconds later revokes the family. Password reset and 2FA enrolment revoke every family of the account.
+- **Seed**: `src/tools/seed.ts` creates the first SuperAdmin (idempotent), who must enrol 2FA before staff permissions apply.
+
 ## Matchmaking flow (planned, Phase 3)
 
 ```mermaid

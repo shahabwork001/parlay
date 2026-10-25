@@ -1,6 +1,6 @@
 # Feature: Age and terms gate
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,14 @@ Mandatory 18+ confirmation and Terms / Community Guidelines acceptance before an
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+- POST /api/v1/auth/anonymous and POST /api/v1/auth/register require `ageConfirmed: true` and the current `termsVersion`
+- POST /api/v1/me/terms re-accepts after a Terms change
+- GET /api/v1/legal/terms returns the current version
+- Access tokens carry the accepted version (`tv` claim)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+`termsAcceptance { version, acceptedAt, ageConfirmed: true }` on users and devices.
 
 ## Business rules
 
@@ -28,8 +31,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: acceptance is stored with timestamp and version; an outdated version is rejected with `terms.outdated`. The chat gateway (Phase 3) will refuse sessions whose `tv` claim is not current.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

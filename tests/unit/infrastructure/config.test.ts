@@ -1,44 +1,94 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, loadApiConfig, loadWorkersConfig } from "../../../src/infrastructure/config/config.js";
+import {
+  ConfigError,
+  loadApiConfig,
+  loadSeedConfig,
+  loadWorkersConfig,
+} from "../../../src/infrastructure/config/config.js";
 
-const baseEnvironment = {
+const infrastructure = {
   MONGO_URI: "mongodb://localhost:27017",
   REDIS_URL: "redis://localhost:6379",
   RABBITMQ_URL: "amqp://guest:guest@localhost:5672",
-  CORS_ALLOWED_ORIGINS: "http://localhost:3000, https://parley.example",
 };
+
+const api = {
+  ...infrastructure,
+  CORS_ALLOWED_ORIGINS: "http://localhost:3000, https://parley.example",
+  JWT_SECRET: "j".repeat(32),
+  HASH_SECRET: "h".repeat(32),
+  TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+};
+
+const workers = { ...infrastructure, SMTP_HOST: "mailpit" };
 
 describe("loadApiConfig", () => {
   it("applies defaults and parses lists", () => {
-    const config = loadApiConfig(baseEnvironment);
+    const config = loadApiConfig(api);
 
     expect(config.environment).toBe("development");
     expect(config.port).toBe(8080);
     expect(config.mongo.database).toBe("parley");
     expect(config.rabbitMq).toMatchObject({ prefetch: 16, deliveryLimit: 5, retryDelayMs: 1000 });
     expect(config.corsAllowedOrigins).toEqual(["http://localhost:3000", "https://parley.example"]);
+    expect(config.frontendUrl).toBe("http://localhost:3000");
+    expect(config.cookieSecure).toBe(true);
+    expect(config.auth).toMatchObject({ accessTokenTtlSeconds: 900, refreshTokenTtlMs: 30 * 86_400_000 });
+    expect(config.termsVersion).toBe("2026-10-25");
+    expect(config.rateLimitMultiplier).toBe(1);
   });
 
-  it("coerces numeric settings", () => {
-    const config = loadApiConfig({ ...baseEnvironment, PORT: "9000", RABBITMQ_DELIVERY_LIMIT: "3" });
+  it("coerces numbers and booleans and trims the frontend URL", () => {
+    const config = loadApiConfig({
+      ...api,
+      PORT: "9000",
+      RABBITMQ_DELIVERY_LIMIT: "3",
+      COOKIE_SECURE: "false",
+      FRONTEND_URL: "https://parley.example/",
+    });
+
     expect(config.port).toBe(9000);
     expect(config.rabbitMq.deliveryLimit).toBe(3);
+    expect(config.cookieSecure).toBe(false);
+    expect(config.frontendUrl).toBe("https://parley.example");
   });
 
-  it("lists every invalid setting at once", () => {
+  it("rejects weak secrets and malformed keys", () => {
+    const load = () =>
+      loadApiConfig({ ...api, JWT_SECRET: "short", HASH_SECRET: "short", TOTP_ENCRYPTION_KEY: "abc" });
+
+    expect(load).toThrow(/JWT_SECRET must be at least 32 characters/);
+    expect(load).toThrow(/HASH_SECRET must be at least 32 characters/);
+    expect(load).toThrow(/TOTP_ENCRYPTION_KEY: Must be 32 bytes/);
+  });
+
+  it("lists every missing setting at once", () => {
     const load = () => loadApiConfig({ CORS_ALLOWED_ORIGINS: "not-a-url" });
 
     expect(load).toThrow(ConfigError);
-    expect(load).toThrow(/MONGO_URI/);
-    expect(load).toThrow(/REDIS_URL/);
-    expect(load).toThrow(/RABBITMQ_URL/);
-    expect(load).toThrow(/CORS_ALLOWED_ORIGINS/);
+    for (const name of ["MONGO_URI", "REDIS_URL", "RABBITMQ_URL", "CORS_ALLOWED_ORIGINS", "JWT_SECRET"]) {
+      expect(load).toThrow(new RegExp(name));
+    }
   });
 });
 
 describe("loadWorkersConfig", () => {
-  it("does not require CORS settings and defaults to port 8081", () => {
-    const { CORS_ALLOWED_ORIGINS: _cors, ...workerEnvironment } = baseEnvironment;
-    expect(loadWorkersConfig(workerEnvironment).port).toBe(8081);
+  it("needs SMTP but no API secrets, and defaults to port 8081", () => {
+    const config = loadWorkersConfig(workers);
+
+    expect(config.port).toBe(8081);
+    expect(config.smtp).toMatchObject({ host: "mailpit", port: 1025, secure: false });
+  });
+
+  it("requires an SMTP host", () => {
+    expect(() => loadWorkersConfig(infrastructure)).toThrow(/SMTP_HOST/);
+  });
+});
+
+describe("loadSeedConfig", () => {
+  it("needs only the infrastructure settings", () => {
+    const config = loadSeedConfig(infrastructure);
+    expect(config.mongo.uri).toBe("mongodb://localhost:27017");
+    expect(config).toMatchObject({ adminEmail: "admin@parley.local", printCredentials: false });
   });
 });
