@@ -5,13 +5,12 @@
 name: parley
 
 x-backend-environment: &backend-environment
-  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
-  Mongo__ConnectionString: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
-  Mongo__Database: ${MONGO_DATABASE:-parley}
-  Redis__ConnectionString: redis:6379,password=${REDIS_PASSWORD:?}
-  RabbitMq__Host: rabbitmq
-  RabbitMq__Username: ${RABBITMQ_USERNAME:?}
-  RabbitMq__Password: ${RABBITMQ_PASSWORD:?}
+  NODE_ENV: ${NODE_ENV:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
+  MONGO_DATABASE: ${MONGO_DATABASE:-parley}
+  REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+  RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?}:${RABBITMQ_PASSWORD:?}@rabbitmq:5672
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
 
 x-backend-dependencies: &backend-dependencies
@@ -49,7 +48,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG']
       interval: 10s
       timeout: 3s
       retries: 10
@@ -126,7 +125,7 @@ services:
     restart: unless-stopped
     environment:
       <<: *backend-environment
-      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_ORIGIN:-http://localhost:3000}
     ports:
       - "8080:8080"
     depends_on: *backend-dependencies

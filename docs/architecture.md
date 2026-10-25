@@ -1,16 +1,17 @@
 # Architecture
 
-Status: Phase 1 (foundation). Sections marked *planned* describe the target design that later phases implement; update them as features land.
+Status: Phase 1 (foundation). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
+
 ```mermaid
 flowchart LR
   subgraph Client
     FE[Next.js frontend]
   end
   subgraph Backend
-    API[Parley.Api<br/>REST + SignalR]
-    WK[Parley.Workers<br/>RabbitMQ consumers]
+    API[API process<br/>Express + Socket.IO]
+    WK[Workers process<br/>RabbitMQ consumers]
   end
   subgraph Infrastructure
     MDB[(MongoDB)]
@@ -29,81 +30,92 @@ flowchart LR
   WK --> MDB
   WK --> RDS
   WK --> MAIL
-  API -. SignalR backplane .-> RDS
+  API -. Socket.IO Redis adapter .-> RDS
 ```
+
+The API is stateless: any instance can serve any request or socket, because session state lives in Redis and the Socket.IO Redis adapter fans events out across instances.
 
 ### Layers
+
 ```mermaid
 flowchart TB
-  Api[Parley.Api] --> Application
-  Workers[Parley.Workers] --> Application
+  Api[src/api] --> Application
+  Workers[src/workers] --> Application
   Api --> Infrastructure
   Workers --> Infrastructure
-  Infrastructure[Parley.Infrastructure] --> Application[Parley.Application]
-  Application --> Domain[Parley.Domain]
+  Infrastructure[src/infrastructure] --> Application[src/application]
+  Application --> Domain[src/domain]
 ```
-Dependencies point inwards. Infrastructure implements Application ports; hosts compose them.
+
+Dependencies point inwards and ESLint fails the build when they don't. `src/infrastructure/infrastructure.ts` is the shared composition root; `src/api/server.ts` and `src/workers/main.ts` are the process entry points.
 
 ## Messaging (implemented in Phase 1)
-- One durable topic exchange `parley.events`; routing key = `IIntegrationEvent.RoutingKey` (versioned, e.g. `reports.created.v1`).
-- Each subscriber declares its own quorum queue `parley.{subscriber}.{routingKey}` with `x-delivery-limit`; failures are requeued, and after the limit the message is dead-lettered through `parley.dead-letter` into `{queue}.dead-letter`. Malformed messages are dead-lettered immediately.
-- Publisher confirms: `PublishAsync` completes once the broker has accepted the message.
+
+- One durable topic exchange `parley.events`; routing key = event definition key, versioned (e.g. `reports.created.v1`). Payloads are validated with the event's zod schema when published and when consumed.
+- Envelope: `{ eventId (UUID v7), occurredAt (ISO 8601), payload }`, persistent, published with confirms (10 s timeout while the broker is unreachable).
+- Each subscriber declares its own quorum queue `parley.{subscriber}.{routingKey}`.
+- Retries are counted by the consumer: on failure it waits `RABBITMQ_RETRY_DELAY_MS * 2^(attempt-1)` (max 30 s), republishes the message with `x-parley-attempt` incremented (confirmed), then acks the original. After `RABBITMQ_DELIVERY_LIMIT` attempts the message is dead-lettered. Malformed or schema-invalid messages are dead-lettered immediately. RabbitMQ 4 does not count `nack` requeues toward a quorum queue's delivery limit, so the queue's `x-delivery-limit` only guards against consumers that crash mid-message.
+- The connection recovers automatically with exponential backoff; consumers re-subscribe on every reconnect.
 
 ```mermaid
 flowchart LR
   P[Publisher] -->|routing key| X{{parley.events<br/>topic}}
   X --> Q1[parley.moderation.reports.created.v1]
   X --> Q2[parley.analytics.reports.created.v1]
-  Q1 -->|delivery limit exceeded| DLX{{parley.dead-letter<br/>direct}}
+  Q1 -->|failed: backoff + republish| Q1
+  Q1 -->|attempts exhausted / malformed| DLX{{parley.dead-letter<br/>direct}}
   DLX --> D1[parley.moderation.reports.created.v1.dead-letter]
 ```
 
 ## Matchmaking flow (planned, Phase 3)
+
 ```mermaid
 sequenceDiagram
   participant A as Client A
-  participant H as ChatHub (API)
+  participant G as Socket.IO gateway (API)
   participant R as Redis
   participant B as Client B
-  A->>H: JoinQueue(mode, interests, language)
-  H->>R: check bans / rate limit
-  H->>R: EVAL pair.lua (atomic: find compatible waiting user or enqueue)
+  A->>G: queue:join(mode, interests, language)
+  G->>R: check bans / rate limit
+  G->>R: EVAL pair.lua (atomic: find compatible waiting user or enqueue)
   alt partner found
-    R-->>H: partner B, session id
-    H-->>A: Matched(sessionId, role=caller)
-    H-->>B: Matched(sessionId, role=callee)
+    R-->>G: partner B, session id
+    G-->>A: match:found(sessionId, role=caller)
+    G-->>B: match:found(sessionId, role=callee)
   else nobody compatible
-    R-->>H: enqueued
-    H-->>A: Searching
+    R-->>G: enqueued
+    G-->>A: queue:searching
   end
 ```
 
 ## WebRTC signaling (planned, Phase 4)
+
 ```mermaid
 sequenceDiagram
   participant A as Caller
-  participant H as ChatHub
+  participant G as Gateway
   participant B as Callee
   participant T as coturn
-  A->>H: GET TURN credentials (HMAC, short TTL)
-  B->>H: GET TURN credentials
-  A->>H: SendOffer(sdp)
-  H-->>B: Offer(sdp)
-  B->>H: SendAnswer(sdp)
-  H-->>A: Answer(sdp)
-  A->>H: SendIceCandidate
-  H-->>B: IceCandidate
+  A->>G: GET TURN credentials (HMAC, short TTL)
+  B->>G: GET TURN credentials
+  A->>G: rtc:offer(sdp)
+  G-->>B: rtc:offer(sdp)
+  B->>G: rtc:answer(sdp)
+  G-->>A: rtc:answer(sdp)
+  A->>G: rtc:ice(candidate)
+  G-->>B: rtc:ice(candidate)
   A-->T: relay if direct path fails
   Note over A,B: on ICE failure the caller restarts ICE and renegotiates
 ```
 
 ## Moderation pipeline (planned, Phase 5)
+
 ```mermaid
 flowchart LR
   R[Report / NSFW flag] --> API
   API -->|reports.created.v1| MQ[[RabbitMQ]]
   MQ --> W[Moderation worker]
-  W --> C[IContentClassifier]
+  W --> C[ContentClassifier port]
   W -->|priority score| Q[(Review queue in Mongo)]
   W -->|minor-safety| S[Instant suspension + evidence hold]
   Q --> M[Moderator UI]
@@ -113,5 +125,12 @@ flowchart LR
 ```
 
 ## Health
-- `/health/live`: process is running (used by container health checks).
-- `/health/ready`: MongoDB ping, Redis ping, RabbitMQ connection. Returns 503 when any check fails. The payload exposes only component names and statuses.
+
+- `/health/live`: process is running (container health checks).
+- `/health/ready`: MongoDB ping, Redis ping, RabbitMQ connection state; 503 when any check is unhealthy; each check times out after 3 s. The payload exposes only component names and statuses; failure details go to the logs.
+
+## Process lifecycle
+
+- Configuration is validated before anything starts; invalid configuration exits with every problem listed.
+- The API and workers start even when a dependency is down (readiness reports it; Redis and RabbitMQ reconnect in the background).
+- SIGTERM/SIGINT: stop accepting connections, stop consumers, close broker/Redis/Mongo connections; forced exit after 15 s.

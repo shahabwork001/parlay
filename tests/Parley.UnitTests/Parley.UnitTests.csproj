@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Parley.Api\Parley.Api.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="NSubstitute" />
-  </ItemGroup>
-</Project>

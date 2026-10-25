@@ -14,19 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-node@v4
         with:
-          global-json-file: global.json
-      - name: Restore
-        run: dotnet restore Parley.slnx
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - name: Lint
-        run: dotnet format Parley.slnx --verify-no-changes --no-restore
-      - name: Build
-        run: dotnet build Parley.slnx --configuration Release --no-restore
+        run: npm run lint && npm run format:check
+      - name: Typecheck
+        run: npm run typecheck
       - name: Unit tests
-        run: dotnet test tests/Parley.UnitTests --configuration Release --no-build
+        run: npm test
       - name: Integration tests
-        run: dotnet test tests/Parley.IntegrationTests --configuration Release --no-build
+        run: npm run test:integration
+      - name: Build
+        run: npm run build
 
   docker:
     needs: verify
