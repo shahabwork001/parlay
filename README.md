@@ -1,7 +1,7 @@
 # Parley frontend
 
 Web client and admin panel for **Parley**, an anonymous random video and text chat platform for adults.
-Next.js 16 (App Router, Cache Components), TypeScript strict, Tailwind CSS v4, shadcn/ui on Radix, TanStack Query, Zustand, SignalR and native WebRTC.
+Next.js 16 (App Router, Cache Components), TypeScript strict, Tailwind CSS v4, shadcn/ui on Radix, TanStack Query, Zustand, Socket.IO client and native WebRTC.
 
 Project state lives in [FEATURES.md](FEATURES.md). Architecture: [docs/architecture.md](docs/architecture.md).
 

@@ -23,7 +23,7 @@ Client-only: parley.preferences in localStorage (interests, language).
 
 ## Business rules
 
-- Configuration comes from IOptions<T> bound to appsettings + environment variables; secrets only from environment.
+- Configuration comes from environment variables validated with zod at startup (fail fast, every problem listed); secrets only from environment.
 - Unhandled exceptions return RFC 7807 ProblemDetails without internal details.
 - Health: /health/live (process up) and /health/ready (MongoDB, Redis, RabbitMQ).
 - Containers run as non-root.

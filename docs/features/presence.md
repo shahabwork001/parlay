@@ -22,7 +22,7 @@ To be defined when implementation starts (planned for Phase 3).
 ## Business rules
 
 - Presence keys in Redis with short TTL refreshed by heartbeat.
-- SignalR automatic reconnect with backoff on the client.
+- Socket.IO automatic reconnect with backoff on the client.
 
 ## Current state (what works, what's missing, known issues)
 

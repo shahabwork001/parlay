@@ -4,9 +4,13 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Changed
+
+- Real-time client is `socket.io-client` instead of `@microsoft/signalr`, following the backend move to Node.js + Express with Socket.IO (frontend ADR 0006).
+
 ### Added
 
-- Phase 1 foundation: Next.js 16 App Router with Cache Components and Partial Prefetching, TypeScript strict, Tailwind CSS v4, shadcn/ui (Radix), TanStack Query, Zustand, React Hook Form + zod, SignalR client dependency.
+- Phase 1 foundation: Next.js 16 App Router with Cache Components and Partial Prefetching, TypeScript strict, Tailwind CSS v4, shadcn/ui (Radix), TanStack Query, Zustand, React Hook Form + zod.
 - Design tokens: zinc neutrals with a single teal accent, light/dark/system themes, Geist (local font files), reduced-motion support.
 - App shell: header with theme toggle, footer, skip link, not-found and error pages.
 - Landing page: value proposition, ground rules, principles, start panel with interest tags and language selector (persisted).

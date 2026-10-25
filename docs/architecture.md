@@ -11,15 +11,15 @@ flowchart TB
   Hooks --> Repos[src/repositories<br/>zod-validated]
   Repos --> Http[lib/http HttpClient]
   Http --> API[(Parley API)]
-  Features --> Services[src/services<br/>SignalR, WebRTC, media devices]
-  Services --> Hub[(ChatHub)]
+  Features --> Services[src/services<br/>Socket.IO, WebRTC, media devices]
+  Services --> Hub[(Socket.IO gateway)]
   Features --> Store[Zustand stores]
 ```
 
 - **Routes** compose feature components and export metadata. No logic.
 - **Features** own UI and state for one capability.
 - **Repositories** are the only code that talks HTTP. Each method validates the response with zod and returns typed data. Errors surface as `ApiError` (wrapping RFC 7807 ProblemDetails; status 0 means a network failure).
-- **Services** (Phase 3+) wrap long-lived browser resources: the SignalR connection (automatic reconnect with backoff), RTCPeerConnection (ICE restart), media devices.
+- **Services** (Phase 3+) wrap long-lived browser resources: the Socket.IO connection (automatic reconnect with backoff), RTCPeerConnection (ICE restart), media devices.
 
 ## Rendering
 
@@ -41,20 +41,20 @@ flowchart TB
 sequenceDiagram
   participant U as User
   participant UI as Chat feature
-  participant S as SignalR manager
-  participant H as ChatHub
+  participant S as Socket manager
+  participant H as Socket.IO gateway
   U->>UI: Start text
   UI->>S: connect (access or anonymous token)
-  S->>H: JoinQueue(mode, interests, language)
-  H-->>S: Searching
-  H-->>S: Matched(sessionId)
+  S->>H: queue:join(mode, interests, language)
+  H-->>S: queue:searching
+  H-->>S: match:found(sessionId)
   UI-->>U: Connected; message box focused
   U->>UI: type
-  UI->>S: Typing / SendMessage
-  H-->>S: PartnerLeft
+  UI->>S: chat:typing / chat:message
+  H-->>S: match:ended
   UI-->>U: Partner left; Next or Stop
 ```
 
 ## Video call flow (planned, Phase 4)
 
-The caller creates the offer after `Matched`; SDP and ICE candidates travel over the hub. TURN credentials are fetched from the API per session. On `iceconnectionstatechange = failed` the caller performs an ICE restart; if that fails within a timeout, the session ends with a clear message.
+The caller creates the offer after `match:found`; SDP and ICE candidates travel over the socket. TURN credentials are fetched from the API per session. On `iceconnectionstatechange = failed` the caller performs an ICE restart; if that fails within a timeout, the session ends with a clear message.

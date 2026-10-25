@@ -5,7 +5,7 @@ Last updated: 2026-10-25
 
 ## Purpose
 
-SignalR-based offer/answer/ICE exchange with STUN/TURN via coturn and time-limited HMAC credentials.
+Socket.IO-based offer/answer/ICE exchange with STUN/TURN via coturn and time-limited HMAC credentials.
 
 ## User stories / use cases
 

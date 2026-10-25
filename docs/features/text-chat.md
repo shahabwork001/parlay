@@ -5,7 +5,7 @@ Last updated: 2026-10-25
 
 ## Purpose
 
-Real-time text chat over SignalR with typing indicator and delivery state.
+Real-time text chat over Socket.IO with typing indicator and delivery state.
 
 ## User stories / use cases
 

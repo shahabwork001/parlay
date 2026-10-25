@@ -23,8 +23,8 @@ To be defined when implementation starts (planned for Phase 2).
 ## Business rules
 
 - Short-lived access JWT; refresh token in httpOnly Secure SameSite cookie with rotation and reuse detection.
-- Passwords hashed with ASP.NET Core Identity PasswordHasher (PBKDF2).
-- Email via ISmtp/IEmailSender; Mailpit locally.
+- Passwords hashed with Argon2id.
+- Email through an EmailSender port (SMTP adapter); Mailpit locally.
 
 ## Current state (what works, what's missing, known issues)
 

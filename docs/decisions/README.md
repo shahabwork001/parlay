@@ -9,3 +9,4 @@ Template: Context, Decision, Consequences. Supersede rather than edit accepted d
 | [0003](0003-local-fonts.md)            | Geist from the `geist` package (local files)     | Accepted |
 | [0004](0004-static-csp.md)             | Static CSP with inline scripts allowed           | Accepted |
 | [0005](0005-persisted-client-state.md) | Persisted Zustand stores hydrate after mount     | Accepted |
+| [0006](0006-socket-io-client.md)       | Socket.IO client for real-time                   | Accepted |

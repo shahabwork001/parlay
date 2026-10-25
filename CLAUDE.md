@@ -23,7 +23,7 @@ npm run test:e2e       # Playwright (builds and starts the app unless E2E_BASE_U
 src/app/                 routes only (thin). Route groups: (public), (chat), (account), (admin)
 src/features/<feature>/  components, hooks, store, types for one feature
 src/repositories/        one repository per backend resource; the only callers of HttpClient
-src/services/            SignalR connection manager, WebRTC peer manager, media device manager
+src/services/            Socket.IO connection manager, WebRTC peer manager, media device manager
 src/components/ui/       shadcn/ui primitives (generated; keep edits minimal)
 src/components/shared/   shared composed components (header, footer, theme toggle)
 src/lib/                 config, constants, zod schemas, http client, utils
