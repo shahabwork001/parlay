@@ -1,6 +1,6 @@
 # Feature: Roles and permissions
 
-Status: Not started
+Status: In progress
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ SuperAdmin, Admin, Moderator and Support roles mapped to fine-grained permission
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+GET /api/v1/me returns roles and permissions
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+Session principal roles.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Roles and permissions are available to the UI (account page shows roles). Admin route guards are built with the admin panel in Phase 6.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

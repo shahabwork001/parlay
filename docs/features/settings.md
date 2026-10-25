@@ -1,6 +1,6 @@
 # Feature: User settings
 
-Status: Not started
+Status: In progress
 Last updated: 2026-10-25
 
 ## Purpose
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 4).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 4.
+Theme (light/dark/system) works from the header. The account page covers email, Terms and two-factor settings. Default devices, relay-only video and notification preferences arrive in Phase 4.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Account settings page added (Phase 2).

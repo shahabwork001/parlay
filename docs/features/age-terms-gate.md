@@ -1,6 +1,6 @@
 # Feature: Age and terms gate
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Mandatory 18+ confirmation and Terms / Community Guidelines acceptance before an
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+AuthRepository.startAnonymousSession, AccountRepository.acceptCurrentTerms
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+`TERMS_VERSION` constant in `src/lib/legal.ts` (must match the API's `TERMS_VERSION`).
 
 ## Business rules
 
@@ -28,8 +28,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: Start video/text open a dialog requiring both the 18+ confirmation and Terms acceptance (with links). Sessions that already accepted the current version go straight to chat; clicks during session restore wait for it. Chat routes arrive in Phase 3.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

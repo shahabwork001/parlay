@@ -1,14 +1,5 @@
-import { SiteFooter } from "@/components/shared/site-footer";
-import { SiteHeader } from "@/components/shared/site-header";
+import { SiteShell } from "@/components/shared/site-shell";
 
 export default function PublicLayout({ children }: LayoutProps<"/">) {
-  return (
-    <>
-      <SiteHeader />
-      <main id="main" className="flex flex-1 flex-col">
-        {children}
-      </main>
-      <SiteFooter />
-    </>
-  );
+  return <SiteShell>{children}</SiteShell>;
 }

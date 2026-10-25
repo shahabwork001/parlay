@@ -1,6 +1,6 @@
 # Feature: Anonymous sessions
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Chat without an account using a device-bound, signed anonymous session.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+AuthRepository.startAnonymousSession; `src/services/device-identity.ts`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+localStorage `parley.device-id` (random UUID). The fingerprint sent is SHA-256(id + stable browser traits).
 
 ## Business rules
 
@@ -27,8 +27,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: created by the terms gate; restored on reload from the refresh cookie.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

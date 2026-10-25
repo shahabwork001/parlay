@@ -38,20 +38,25 @@ docker compose up -d --build   # http://localhost:3000
 
 ## Scripts
 
-| Script                                    | What it does                                            |
-| ----------------------------------------- | ------------------------------------------------------- |
-| `npm run dev`                             | Development server                                      |
-| `npm run build` / `npm start`             | Production build / server                               |
-| `npm run lint` / `npm run lint:fix`       | ESLint (zero warnings allowed)                          |
-| `npm run format` / `npm run format:check` | Prettier (with Tailwind class sorting)                  |
-| `npm run typecheck`                       | `tsc --noEmit`                                          |
-| `npm test` / `npm run test:watch`         | Vitest + Testing Library                                |
-| `npm run test:e2e`                        | Playwright (run `npx playwright install chromium` once) |
-| `npm run check`                           | Lint, format check, typecheck and unit tests            |
+| Script                                    | What it does                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `npm run dev`                             | Development server                                                                 |
+| `npm run build` / `npm start`             | Production build / server                                                          |
+| `npm run lint` / `npm run lint:fix`       | ESLint (zero warnings allowed)                                                     |
+| `npm run format` / `npm run format:check` | Prettier (with Tailwind class sorting)                                             |
+| `npm run typecheck`                       | `tsc --noEmit`                                                                     |
+| `npm test` / `npm run test:watch`         | Vitest + Testing Library                                                           |
+| `npm run test:e2e`                        | Playwright frontend specs (run `npx playwright install chromium` once)             |
+| `npm run test:e2e:stack`                  | Playwright against the running Docker stack (`E2E_BASE_URL=http://localhost:3000`) |
+| `npm run lock:refresh`                    | Regenerate the lockfile from a clean install (run after adding dependencies)       |
+| `npm run check`                           | Lint, format check, typecheck and unit tests                                       |
 
 ## Routes
 
-| Route     | Description                                                                            |
-| --------- | -------------------------------------------------------------------------------------- |
-| `/`       | Landing page: value proposition, ground rules, start panel with interests and language |
-| `/status` | Public system status (polls the API readiness endpoint)                                |
+| Route                                                                         | Description                                                                            |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `/`                                                                           | Landing page: value proposition, ground rules, start panel with interests and language |
+| `/status`                                                                     | Public system status (polls the API readiness endpoint)                                |
+| `/terms`, `/privacy`, `/guidelines`, `/safety`, `/faq`, `/contact`            | Static legal and help pages                                                            |
+| `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Account flows                                                                          |
+| `/account`                                                                    | Email, Terms status and two-factor authentication                                      |

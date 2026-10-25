@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { type ReactNode, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SessionBootstrap } from "@/features/auth/components/session-bootstrap";
 import { PreferencesHydrator } from "@/features/preferences/components/preferences-hydrator";
 import { ApiError } from "@/lib/http";
 
@@ -32,6 +33,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <TooltipProvider>
           <PreferencesHydrator />
+          <SessionBootstrap />
           {children}
           <Toaster />
         </TooltipProvider>

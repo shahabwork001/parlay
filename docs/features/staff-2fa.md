@@ -1,6 +1,6 @@
 # Feature: Staff two-factor authentication
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Mandatory TOTP two-factor authentication for all staff accounts.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+AccountRepository.startTwoFactorSetup / confirmTwoFactorSetup
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+None persisted client-side.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: setup with QR code and manual key, first-code confirmation, recovery codes shown once with copy; sign-in second step with authenticator or recovery code. Staff without 2FA see a notice on the account page.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

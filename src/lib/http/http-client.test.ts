@@ -73,3 +73,40 @@ describe("HttpClient", () => {
     expect((error as ApiError).isNetworkError).toBe(true);
   });
 });
+
+describe("HttpClient token refresh", () => {
+  it("refreshes once and retries an authenticated request that got 401", async () => {
+    let token = "expired";
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(jsonResponse({ title: "Unauthorized" }, 401))
+      .mockResolvedValueOnce(jsonResponse({ value: "ok" }));
+    const onUnauthorized = vi.fn(() => {
+      token = "fresh";
+      return Promise.resolve(true);
+    });
+    const client = new HttpClient({
+      baseUrl: "http://api.test",
+      fetchImpl,
+      getAccessToken: () => token,
+      onUnauthorized,
+    });
+
+    await expect(client.request("/thing", { schema })).resolves.toEqual({ value: "ok" });
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect((fetchImpl.mock.calls[1]?.[1]?.headers as Headers).get("Authorization")).toBe(
+      "Bearer fresh",
+    );
+  });
+
+  it("does not try to refresh anonymous requests", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ title: "Unauthorized" }, 401));
+    const onUnauthorized = vi.fn(() => Promise.resolve(true));
+    const client = new HttpClient({ baseUrl: "http://api.test", fetchImpl, onUnauthorized });
+
+    await expect(client.request("/thing", { schema })).rejects.toBeInstanceOf(ApiError);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+});

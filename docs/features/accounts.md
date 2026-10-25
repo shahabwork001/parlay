@@ -1,6 +1,6 @@
 # Feature: Accounts and authentication
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Optional email/password accounts with verification, JWT access tokens and rotati
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+AuthRepository, AccountRepository; pages /login, /register, /verify-email, /forgot-password, /reset-password, /account
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+Access token in memory only (`src/lib/auth/session-store.ts`); refresh cookie restores it on load.
 
 ## Business rules
 
@@ -28,8 +28,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: all account pages with validation, loading and error states; silent refresh on 401 with one retry; refreshes serialised across tabs with the Web Locks API; header account menu with sign-out.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

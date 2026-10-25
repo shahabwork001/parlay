@@ -4,8 +4,8 @@ test("landing page shows the value proposition and both start actions", async ({
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1, name: "Talk to someone new." })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start video" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start text" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start video" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start text" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Ground rules" })).toBeVisible();
 });
 

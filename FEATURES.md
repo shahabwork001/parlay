@@ -8,19 +8,19 @@ Status values: Not started, In progress, Done, Blocked.
 | ------------------------------------ | ----------- | ------- | ----- | ---------------------------------------------------------------------------------- |
 | Platform foundation                  | Done        | FE + BE | 1     | [docs/features/foundation.md](docs/features/foundation.md)                         |
 | Landing page                         | In progress | FE      | 1     | [docs/features/landing-page.md](docs/features/landing-page.md)                     |
-| Static pages                         | Not started | FE      | 2     | [docs/features/static-pages.md](docs/features/static-pages.md)                     |
-| Age and terms gate                   | Not started | FE + BE | 2     | [docs/features/age-terms-gate.md](docs/features/age-terms-gate.md)                 |
-| Anonymous sessions                   | Not started | FE + BE | 2     | [docs/features/anonymous-sessions.md](docs/features/anonymous-sessions.md)         |
-| Accounts and authentication          | Not started | FE + BE | 2     | [docs/features/accounts.md](docs/features/accounts.md)                             |
-| Roles and permissions                | Not started | FE + BE | 2     | [docs/features/roles-permissions.md](docs/features/roles-permissions.md)           |
-| Staff two-factor authentication      | Not started | FE + BE | 2     | [docs/features/staff-2fa.md](docs/features/staff-2fa.md)                           |
+| Static pages                         | Done        | FE      | 2     | [docs/features/static-pages.md](docs/features/static-pages.md)                     |
+| Age and terms gate                   | Done        | FE + BE | 2     | [docs/features/age-terms-gate.md](docs/features/age-terms-gate.md)                 |
+| Anonymous sessions                   | Done        | FE + BE | 2     | [docs/features/anonymous-sessions.md](docs/features/anonymous-sessions.md)         |
+| Accounts and authentication          | Done        | FE + BE | 2     | [docs/features/accounts.md](docs/features/accounts.md)                             |
+| Roles and permissions                | In progress | FE + BE | 2     | [docs/features/roles-permissions.md](docs/features/roles-permissions.md)           |
+| Staff two-factor authentication      | Done        | FE + BE | 2     | [docs/features/staff-2fa.md](docs/features/staff-2fa.md)                           |
 | Interest and language matching       | Not started | FE + BE | 3     | [docs/features/interest-matching.md](docs/features/interest-matching.md)           |
 | Text chat                            | Not started | FE + BE | 3     | [docs/features/text-chat.md](docs/features/text-chat.md)                           |
 | Presence and disconnect detection    | Not started | FE + BE | 3     | [docs/features/presence.md](docs/features/presence.md)                             |
 | Block and skip history               | Not started | FE + BE | 3     | [docs/features/block-history.md](docs/features/block-history.md)                   |
 | Video chat                           | Not started | FE + BE | 4     | [docs/features/video-chat.md](docs/features/video-chat.md)                         |
 | WebRTC signaling and TURN            | Not started | FE + BE | 4     | [docs/features/webrtc-signaling.md](docs/features/webrtc-signaling.md)             |
-| User settings                        | Not started | FE      | 4     | [docs/features/settings.md](docs/features/settings.md)                             |
+| User settings                        | In progress | FE      | 4     | [docs/features/settings.md](docs/features/settings.md)                             |
 | In-chat reporting                    | Not started | FE + BE | 5     | [docs/features/reporting.md](docs/features/reporting.md)                           |
 | Client-side NSFW screening           | Not started | FE + BE | 5     | [docs/features/client-nsfw-screening.md](docs/features/client-nsfw-screening.md)   |
 | Text moderation                      | Not started | FE + BE | 5     | [docs/features/text-moderation.md](docs/features/text-moderation.md)               |

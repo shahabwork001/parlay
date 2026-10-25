@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccountMenu } from "@/features/auth/components/account-menu";
 import { ThemeToggle } from "./theme-toggle";
 
 const NAV_LINKS = [
@@ -31,6 +32,7 @@ export function SiteHeader() {
             ))}
           </ul>
           <ThemeToggle />
+          <AccountMenu />
         </nav>
       </div>
     </header>

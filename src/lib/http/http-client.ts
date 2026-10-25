@@ -15,17 +15,24 @@ export interface RequestOptions<TSchema extends z.ZodType> {
 export interface HttpClientOptions {
   baseUrl: string;
   getAccessToken?: () => string | null;
+  /**
+   * Called when an authenticated request gets 401 (expired access token). Resolve true after
+   * obtaining a new token and the request is retried once.
+   */
+  onUnauthorized?: () => Promise<boolean>;
   fetchImpl?: typeof fetch;
 }
 
 export class HttpClient {
   private readonly baseUrl: string;
   private readonly getAccessToken: () => string | null;
+  private readonly onUnauthorized: (() => Promise<boolean>) | undefined;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: HttpClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.getAccessToken = options.getAccessToken ?? (() => null);
+    this.onUnauthorized = options.onUnauthorized;
     this.fetchImpl = options.fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
@@ -33,7 +40,10 @@ export class HttpClient {
     path: string,
     options: RequestOptions<TSchema>,
   ): Promise<z.infer<TSchema>> {
-    const response = await this.send(path, options);
+    let response = await this.send(path, options);
+    if (response.status === 401 && this.getAccessToken() && (await this.onUnauthorized?.())) {
+      response = await this.send(path, options);
+    }
     const accepted = options.acceptedStatuses ?? [];
 
     if (!response.ok && !accepted.includes(response.status)) {

@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/**
+ * Projects:
+ * - `frontend`: needs only the Next.js app (started automatically unless E2E_BASE_URL is set).
+ * - `stack`: needs the full Docker stack (API, workers, Mailpit). Run `npm run test:e2e:stack`
+ *   after `./scripts/dev-up.sh`.
+ */
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 const useExistingServer = Boolean(process.env.E2E_BASE_URL);
 
@@ -13,7 +19,10 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "frontend", testIgnore: /stack\//, use: { ...devices["Desktop Chrome"] } },
+    { name: "stack", testMatch: /stack\/.*\.spec\.ts/, use: { ...devices["Desktop Chrome"] } },
+  ],
   webServer: useExistingServer
     ? undefined
     : {

@@ -1,6 +1,6 @@
 # Feature: Static pages
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -14,11 +14,11 @@ Terms, Privacy, Community Guidelines, Safety tips, FAQ and Contact pages.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 2).
+None (static content). Contact addresses and the Terms version live in `src/lib/legal.ts`.
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 2).
+None.
 
 ## Business rules
 
@@ -28,8 +28,9 @@ To be defined when implementation starts (planned for Phase 2).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 2.
+Done: /terms, /privacy, /guidelines, /safety, /faq and /contact, statically prerendered, with a shared reading layout. The Privacy Policy states that video and full chat logs are never stored; the Terms disclose report snapshots. Contact addresses use the placeholder domain parley.example until the operator sets real ones.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Implemented in Phase 2 (identity).

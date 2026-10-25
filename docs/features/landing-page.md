@@ -29,8 +29,9 @@ To be defined when implementation starts (planned for Phase 1).
 
 ## Current state (what works, what's missing, known issues)
 
-Works: hero, ground rules, principles, start panel with interest tags and language selector (persisted). Start buttons link to /chat/video and /chat/text, which are implemented in Phase 3/4. Footer links to static pages that arrive in Phase 2.
+Works: hero, ground rules, principles, start panel with interest tags and language selector (persisted). Start video/text open the age and Terms gate and then navigate to /chat/video or /chat/text (chat routes arrive in Phase 3).
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Start buttons open the terms gate (Phase 2).

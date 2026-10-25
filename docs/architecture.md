@@ -28,12 +28,13 @@ flowchart TB
 
 ## State
 
-| Kind               | Tool                                | Example                        |
-| ------------------ | ----------------------------------- | ------------------------------ |
-| Server state       | TanStack Query                      | readiness report, reports list |
-| Client preferences | Zustand + persist (`skipHydration`) | interests, language            |
-| Real-time session  | Zustand (planned)                   | match state, partner typing    |
-| Theme              | next-themes (class strategy)        | light / dark / system          |
+| Kind               | Tool                                          | Example                        |
+| ------------------ | --------------------------------------------- | ------------------------------ |
+| Server state       | TanStack Query                                | readiness report, reports list |
+| Auth session       | Zustand vanilla store, memory only (ADR 0007) | access token, principal        |
+| Client preferences | Zustand + persist (`skipHydration`)           | interests, language            |
+| Real-time session  | Zustand (planned)                             | match state, partner typing    |
+| Theme              | next-themes (class strategy)                  | light / dark / system          |
 
 ## Text chat flow (planned, Phase 3)
 

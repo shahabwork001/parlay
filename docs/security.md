@@ -21,7 +21,8 @@ Living document; Phase 8 performs the full review.
 | ----------------------- | --------------------------------------------------------------------- | ----------------- |
 | XSS                     | React escaping; no `dangerouslySetInnerHTML` with user data; CSP      | Done              |
 | Broken access control   | Admin route guards (UX only; the API enforces permissions)            | Planned (Phase 6) |
-| Token theft             | Access token kept in memory only; refresh token in an httpOnly cookie | Planned (Phase 2) |
+| Token theft             | Access token kept in memory only; refresh token in an httpOnly cookie | Done              |
+| Open redirect           | Post-login `next` accepts only same-origin relative paths             | Done              |
 | Clickjacking            | `frame-ancestors 'none'`, `X-Frame-Options: DENY`                     | Done              |
 | Vulnerable dependencies | `npm audit` in CI, lockfile committed                                 | Partial           |
 
