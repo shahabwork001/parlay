@@ -1,0 +1,14 @@
+# Frontend container. Standalone: docker compose up -d --build (expects the API at NEXT_PUBLIC_API_BASE_URL).
+# Full stack: use the root docker-compose.yml, which includes this file.
+name: parley
+
+services:
+  frontend:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+    image: parley-frontend:local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
