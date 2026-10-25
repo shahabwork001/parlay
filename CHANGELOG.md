@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 4: video chat)
+
+- `GET /api/v1/rtc/ice-servers`: STUN plus short-lived TURN credentials in coturn's REST scheme (HMAC-SHA1 over `expiry:subject`).
+- Socket.IO `rtc:signal` relay (offer, answer, ICE candidates), validated and limited to video sessions, plus `media:state` (muted, camera off).
+- Configuration: `TURN_SECRET`, `TURN_URLS`, `STUN_URLS`, `TURN_CREDENTIAL_TTL_SECONDS`.
+- 5 new unit tests and 2 new integration tests (145 unit and 48 integration in total).
+
 ### Added (Phase 3: matchmaking and text chat)
 
 - Socket.IO gateway with the Redis adapter; handshake authentication requiring a current Terms acceptance; zod validation and acks on every event.

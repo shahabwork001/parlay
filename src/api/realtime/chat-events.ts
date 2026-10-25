@@ -1,4 +1,5 @@
 import type { ChatMode, EndReason } from "../../application/features/chat/chat-types.js";
+import type { MediaState, RtcSignal } from "../../application/features/chat/schemas.js";
 import type { Principal } from "../../application/features/identity/ports.js";
 
 /**
@@ -30,6 +31,8 @@ export interface ServerToClientEvents {
   "match:ended": (payload: { readonly sessionId: string; readonly reason: EndReason }) => void;
   "chat:message": (payload: ChatMessagePayload) => void;
   "chat:typing": (payload: { readonly typing: boolean }) => void;
+  "rtc:signal": (payload: RtcSignal) => void;
+  "media:state": (payload: MediaState) => void;
 }
 
 export interface ClientToServerEvents {
@@ -39,6 +42,8 @@ export interface ClientToServerEvents {
   "match:block": (ack: AckCallback<null>) => void;
   "chat:message": (payload: unknown, ack: AckCallback<ChatMessagePayload>) => void;
   "chat:typing": (payload: unknown) => void;
+  "rtc:signal": (payload: unknown) => void;
+  "media:state": (payload: unknown) => void;
 }
 
 /** No server-to-server events: cross-instance delivery goes through the Redis adapter. */

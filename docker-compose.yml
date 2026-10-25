@@ -134,6 +134,9 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       RATE_LIMIT_MULTIPLIER: ${RATE_LIMIT_MULTIPLIER:-1}
       MATCH_INTEREST_FALLBACK_MS: ${MATCH_INTEREST_FALLBACK_MS:-5000}
+      TURN_SECRET: ${TURN_SECRET:?}
+      TURN_URLS: ${TURN_URLS:-turn:localhost:3478?transport=udp,turn:localhost:3478?transport=tcp}
+      STUN_URLS: ${STUN_URLS:-stun:localhost:3478}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@parley.local}
     ports:
       - "8080:8080"

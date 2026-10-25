@@ -8,7 +8,13 @@ import {
   partnerOf,
 } from "../../application/features/chat/chat-types.js";
 import type { Matchmaker } from "../../application/features/chat/matchmaker.js";
-import { chatMessageSchema, joinQueueSchema, typingSchema } from "../../application/features/chat/schemas.js";
+import {
+  chatMessageSchema,
+  joinQueueSchema,
+  mediaStateSchema,
+  rtcSignalSchema,
+  typingSchema,
+} from "../../application/features/chat/schemas.js";
 import { filterChatText } from "../../application/features/chat/text-filter.js";
 import type { Logger } from "../../infrastructure/observability/logger.js";
 import type { Ack, AckCallback } from "./chat-events.js";
@@ -44,6 +50,7 @@ interface Connection {
   retryTimer: NodeJS.Timeout | null;
   readonly messages: TokenBucket;
   readonly typing: TokenBucket;
+  readonly signals: TokenBucket;
 }
 
 /**
@@ -91,6 +98,7 @@ export class ChatGateway {
       retryTimer: null,
       messages: new TokenBucket(10, 3),
       typing: new TokenBucket(5, 2),
+      signals: new TokenBucket(60, 20),
     };
     this.#connections.set(socket.id, connection);
     this.#onlineSubjects.set(subjectId, (this.#onlineSubjects.get(subjectId) ?? 0) + 1);
@@ -207,6 +215,28 @@ export class ChatGateway {
         const session = await this.options.matchmaker.activeSession(subjectId);
         if (session)
           this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("chat:typing", parsed.data);
+      }),
+    );
+
+    socket.on(
+      "rtc:signal",
+      guard("rtc:signal", async (payload: unknown) => {
+        const parsed = rtcSignalSchema.safeParse(payload);
+        if (!parsed.success || !connection.signals.tryTake()) return;
+        const session = await this.options.matchmaker.activeSession(subjectId);
+        if (session?.mode !== "video") return;
+        this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("rtc:signal", parsed.data);
+      }),
+    );
+
+    socket.on(
+      "media:state",
+      guard("media:state", async (payload: unknown) => {
+        const parsed = mediaStateSchema.safeParse(payload);
+        if (!parsed.success || !connection.typing.tryTake()) return;
+        const session = await this.options.matchmaker.activeSession(subjectId);
+        if (session)
+          this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("media:state", parsed.data);
       }),
     );
 

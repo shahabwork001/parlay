@@ -4,12 +4,14 @@ import { loadApiConfig } from "../infrastructure/config/config.js";
 import { createIdentityContext } from "../infrastructure/identity/identity-composition.js";
 import { createInfrastructure } from "../infrastructure/infrastructure.js";
 import { RedisMatchmaker } from "../infrastructure/matchmaking/redis-matchmaker.js";
+import { HmacTurnCredentialProvider } from "../infrastructure/rtc/turn-credentials.js";
 import { createLogger } from "../infrastructure/observability/logger.js";
 import { onShutdown } from "../infrastructure/process/shutdown.js";
 import { createApp } from "./app.js";
 import { authenticate } from "./auth/authentication.js";
 import { registerIdentityOpenApi } from "./features/identity/identity-openapi.js";
 import { createIdentityRouter } from "./features/identity/identity-router.js";
+import { createRtcRouter, registerRtcOpenApi } from "./features/rtc/rtc-router.js";
 import { ChatGateway } from "./realtime/chat-gateway.js";
 import { PresenceSweeper } from "./realtime/presence-sweeper.js";
 import { createSocketServer } from "./realtime/socket-server.js";
@@ -43,6 +45,7 @@ const app = createApp({
       }),
       openApi: registerIdentityOpenApi,
     },
+    { router: createRtcRouter(new HmacTurnCredentialProvider(config.turn)), openApi: registerRtcOpenApi },
   ],
 });
 

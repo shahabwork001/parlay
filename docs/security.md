@@ -33,7 +33,8 @@ Living document. Phase 8 performs the full review; every phase adds its mitigati
 
 ## Privacy
 
-- Users' IP addresses are never returned to other users or written to logs; TURN relay-only mode hides them from peers (Phase 4).
+- Users' IP addresses are never returned to other users or written to logs. Direct WebRTC connections can reveal a device's IP to the peer, so the relay-only setting routes all media through coturn instead.
+- TURN credentials are per participant and expire after one hour; the shared secret never leaves the server.
 - Device fingerprints and client IPs are stored only as keyed hashes.
 - Video and full chat logs are never stored; only report evidence, with retention TTLs (Phase 5).
 - Logs must not contain secrets, emails, IPs, fingerprints or request headers (enforced by serializers and redaction; covered by a unit test).

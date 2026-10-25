@@ -18,6 +18,9 @@ const api = {
   JWT_SECRET: "j".repeat(32),
   HASH_SECRET: "h".repeat(32),
   TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+  TURN_SECRET: "t".repeat(20),
+  TURN_URLS: "turn:turn.example:3478?transport=udp, turns:turn.example:5349",
+  STUN_URLS: "stun:turn.example:3478",
 };
 
 const workers = { ...infrastructure, SMTP_HOST: "mailpit" };
@@ -37,6 +40,12 @@ describe("loadApiConfig", () => {
     expect(config.termsVersion).toBe("2026-10-25");
     expect(config.rateLimitMultiplier).toBe(1);
     expect(config.matchInterestFallbackMs).toBe(5000);
+    expect(config.turn).toEqual({
+      secret: "t".repeat(20),
+      turnUrls: ["turn:turn.example:3478?transport=udp", "turns:turn.example:5349"],
+      stunUrls: ["stun:turn.example:3478"],
+      ttlSeconds: 3600,
+    });
   });
 
   it("coerces numbers and booleans and trims the frontend URL", () => {
@@ -61,6 +70,10 @@ describe("loadApiConfig", () => {
     expect(load).toThrow(/JWT_SECRET must be at least 32 characters/);
     expect(load).toThrow(/HASH_SECRET must be at least 32 characters/);
     expect(load).toThrow(/TOTP_ENCRYPTION_KEY: Must be 32 bytes/);
+  });
+
+  it("rejects ICE URLs with the wrong scheme", () => {
+    expect(() => loadApiConfig({ ...api, TURN_URLS: "http://turn.example" })).toThrow(/Use turn: URLs/);
   });
 
   it("lists every missing setting at once", () => {

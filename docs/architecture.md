@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-3 implemented (foundation, identity, matchmaking and text chat). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
+Status: Phases 1-4 implemented (foundation, identity, matchmaking, text and video chat). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
 
@@ -124,7 +124,7 @@ sequenceDiagram
 - **Presence**: each instance refreshes `mm:presence:{subject}` for its sockets every 10 s (30 s TTL). A sweeper, run by one instance at a time under a Redis lease, ends sessions and clears tickets of subjects without presence (for example after an instance crash).
 - **Ban checks and trust pools** hook into the connect step and the pairing script in Phase 5.
 
-## WebRTC signaling (planned, Phase 4)
+## WebRTC signaling (implemented in Phase 4)
 
 ```mermaid
 sequenceDiagram
@@ -134,15 +134,20 @@ sequenceDiagram
   participant T as coturn
   A->>G: GET TURN credentials (HMAC, short TTL)
   B->>G: GET TURN credentials
-  A->>G: rtc:offer(sdp)
-  G-->>B: rtc:offer(sdp)
-  B->>G: rtc:answer(sdp)
-  G-->>A: rtc:answer(sdp)
-  A->>G: rtc:ice(candidate)
-  G-->>B: rtc:ice(candidate)
+  A->>G: rtc:signal { description: offer }
+  G-->>B: rtc:signal { description: offer }
+  B->>G: rtc:signal { description: answer }
+  G-->>A: rtc:signal { description: answer }
+  A->>G: rtc:signal { candidate }
+  G-->>B: rtc:signal { candidate }
   A-->T: relay if direct path fails
   Note over A,B: on ICE failure the caller restarts ICE and renegotiates
 ```
+
+- **TURN credentials**: `GET /api/v1/rtc/ice-servers` returns STUN plus TURN with username `<expiry>:<subject>` and password base64(HMAC-SHA1(TURN_SECRET, username)). coturn (`use-auth-secret`) checks the HMAC and expiry itself.
+- **Relay only**: clients that enable the privacy setting use `iceTransportPolicy: relay`, so peers only ever see coturn's address.
+- **Recovery**: ICE restart after 3 s in `disconnected` or immediately on `failed`; perfect negotiation makes restarts safe from either side.
+- **Media never reaches the API**: only SDP and candidates pass through the gateway.
 
 ## Moderation pipeline (planned, Phase 5)
 

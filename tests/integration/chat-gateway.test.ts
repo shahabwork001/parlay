@@ -224,6 +224,47 @@ describe("ChatGateway over Socket.IO", () => {
     });
   });
 
+  async function videoPair(): Promise<[Client, Client]> {
+    const a = await client();
+    const b = await client();
+    const found = Promise.all([once(a, "match:found"), once(b, "match:found")]);
+    await a.emitWithAck("queue:join", { mode: "video", language: "any", interests: [] });
+    await b.emitWithAck("queue:join", { mode: "video", language: "any", interests: [] });
+    await found;
+    return [a, b];
+  }
+
+  it("relays WebRTC signaling and media state between video partners", async () => {
+    const [a, b] = await videoPair();
+    const offer = once(b, "rtc:signal");
+    const candidate = once(a, "rtc:signal");
+    const media = once(b, "media:state");
+
+    a.emit("rtc:signal", { description: { type: "offer", sdp: "v=0 fake offer" } });
+    b.emit("rtc:signal", {
+      candidate: { candidate: "candidate:1 1 udp 1 127.0.0.1 5000 typ host", sdpMid: "0" },
+    });
+    a.emit("media:state", { audio: false, video: true });
+
+    expect(await offer).toEqual({ description: { type: "offer", sdp: "v=0 fake offer" } });
+    expect(await candidate).toMatchObject({ candidate: { sdpMid: "0" } });
+    expect(await media).toEqual({ audio: false, video: true });
+  });
+
+  it("drops signaling outside video sessions and malformed signals", async () => {
+    const [a, b] = await pair();
+    let received = 0;
+    b.on("rtc:signal", () => {
+      received += 1;
+    });
+
+    a.emit("rtc:signal", { description: { type: "offer", sdp: "v=0" } });
+    a.emit("rtc:signal", { description: { type: "pranswer-ish", sdp: "x" } });
+    await a.emitWithAck("chat:message", { text: "sync point" });
+
+    expect(received).toBe(0);
+  });
+
   it("persists blocks idempotently from the PartnerBlocked event", async () => {
     const handler = new RecordPartnerBlock(new MongoBlockRepository(infrastructure.database));
     const event = {

@@ -10,6 +10,17 @@ const commaSeparatedUrls = z
   )
   .pipe(z.array(z.url()).min(1));
 
+const iceUrls = (scheme: "stun" | "turn") =>
+  z
+    .string()
+    .transform((value) =>
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().regex(new RegExp(`^${scheme}s?:\\S+$`), `Use ${scheme}: URLs.`)));
+
 const booleanFlag = z.enum(["true", "false"]).transform((value) => value === "true");
 
 const secret = (name: string) => z.string().min(32, `${name} must be at least 32 characters.`);
@@ -44,6 +55,10 @@ const apiSchema = infrastructureSchema.extend({
   TERMS_VERSION: z.string().min(1).max(32).default("2026-10-25"),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().int().min(1).max(1000).default(1),
   MATCH_INTEREST_FALLBACK_MS: z.coerce.number().int().min(0).max(60_000).default(5000),
+  TURN_SECRET: z.string().min(16, "TURN_SECRET must be at least 16 characters."),
+  TURN_URLS: iceUrls("turn").pipe(z.array(z.string()).min(1)),
+  STUN_URLS: iceUrls("stun").default([]),
+  TURN_CREDENTIAL_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3600),
 });
 
 const workersSchema = infrastructureSchema.extend({
@@ -93,6 +108,12 @@ export interface ApiConfig extends InfrastructureConfig {
   readonly rateLimitMultiplier: number;
   /** Wait before someone with interests may be matched with anyone. */
   readonly matchInterestFallbackMs: number;
+  readonly turn: {
+    readonly secret: string;
+    readonly turnUrls: readonly string[];
+    readonly stunUrls: readonly string[];
+    readonly ttlSeconds: number;
+  };
 }
 
 export interface WorkersConfig extends InfrastructureConfig {
@@ -159,6 +180,12 @@ export function loadApiConfig(environment: Environment = process.env): ApiConfig
     termsVersion: values.TERMS_VERSION,
     rateLimitMultiplier: values.RATE_LIMIT_MULTIPLIER,
     matchInterestFallbackMs: values.MATCH_INTEREST_FALLBACK_MS,
+    turn: {
+      secret: values.TURN_SECRET,
+      turnUrls: values.TURN_URLS,
+      stunUrls: values.STUN_URLS,
+      ttlSeconds: values.TURN_CREDENTIAL_TTL_SECONDS,
+    },
   };
 }
 
