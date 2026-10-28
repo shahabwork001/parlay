@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/shared/kbd";
+import { ReportDialog } from "@/features/moderation/components/report-dialog";
 import type { ChatMode } from "@/lib/constants";
 import { useChat } from "../hooks/use-chat";
 import { type ChatPhase, useChatStore } from "../store/chat-store";
@@ -57,10 +58,16 @@ function Searching() {
 }
 
 export function ChatScreen({ mode }: { mode: ChatMode }) {
-  const { start, next, stop, block, send, typed } = useChat(mode, { autoJoin: true });
+  const { start, next, stop, block, reported, send, typed } = useChat(mode, { autoJoin: true });
   const phase = useChatStore((state) => state.phase);
   const notice = useChatStore((state) => state.notice);
   const unavailableReason = useChatStore((state) => state.unavailableReason);
+  const reportableSessionId = useChatStore((state) => state.reportableSessionId);
+  const endedReason = useChatStore((state) => state.endedReason);
+  const canReport =
+    (phase === "chatting" || phase === "ended") &&
+    endedReason !== "reported" &&
+    endedReason !== "blocked";
   const canSkip = phase === "chatting" || phase === "ended";
 
   useEffect(() => {
@@ -80,6 +87,9 @@ export function ChatScreen({ mode }: { mode: ChatMode }) {
           {STATUS[phase]}
         </p>
         <div className="flex items-center gap-1">
+          {canReport ? (
+            <ReportDialog sessionId={reportableSessionId} onReported={reported} />
+          ) : null}
           {phase === "chatting" ? (
             <Button variant="ghost" size="sm" onClick={block}>
               Block

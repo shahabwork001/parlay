@@ -1,6 +1,6 @@
 # Feature: Client-side NSFW screening
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ NSFWJS in a Web Worker screens the user's own stream; flagged streams are blurre
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+`ContentScreener`, `ScreeningTracker`, `nsfw.worker.ts`, `createBlurredTrack`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+None. Frames stay on the device.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: NSFWJS MobileNetV2 in a Web Worker, loaded only when a video session starts; one frame every 3 s; flagged after 2 frames over the threshold, cleared after 3 under. While flagged the partner receives a 32 px canvas blur (replaceTrack) and the person sees a warning and "Blurred for your partner". Unsupported browsers or model failures turn screening off without breaking the call. See ADR 0008.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

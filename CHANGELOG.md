@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 5: moderation and safety)
+
+- Report dialog in text and video chat: 11 categories, optional note, clear disclosure, minor-safety notice; video reports attach a 320 px still of the partner taken when Report is pressed.
+- On-device NSFW screening: NSFWJS (MobileNetV2) in a lazily created Web Worker, sampling every 3 s; flagged video is blurred for the partner via a canvas track and the person is warned.
+- `/banned` page with reason, duration, appeal form and appeal status; the chat redirects there when a ban lands or a connection is refused.
+- Rejected messages show the server's reason (Community Guidelines or spam).
+- Privacy page: message buffer, on-device screening, retention periods and audit logging.
+- ADR 0008 (on-device screening).
+- Tests: screening policy and report dialog unit tests; Playwright moderation specs (blocked messages, minor-safety report, suspension, appeal, reconnect refused).
+
 ### Added (Phase 4: video chat)
 
 - Video chat at `/chat/video`: camera and microphone preflight with mirrored preview, device pickers and clear permission errors with a text fallback.

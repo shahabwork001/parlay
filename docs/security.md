@@ -30,6 +30,8 @@ Living document; Phase 8 performs the full review.
 
 - Relay-only video (Settings) forces `iceTransportPolicy: relay`, so partners never learn the device's IP address.
 - Camera and microphone are released when leaving the chat page.
+- Content screening runs in the browser; frames never leave the device, only the flag and its score.
+- A report sends one still of the partner's video, taken when Report is pressed, and only after the reporter submits the dialog.
 
 - No analytics or third-party scripts.
 - Preferences (interests, language) stay in localStorage until a chat starts.

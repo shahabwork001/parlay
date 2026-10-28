@@ -9,6 +9,8 @@ const END_MESSAGES: Record<ChatEndReason, string> = {
   left: "Your partner left the chat.",
   disconnected: "Your partner lost their connection.",
   blocked: "You blocked this person. You will not be matched with them again.",
+  reported:
+    "Thanks, your report was sent to our moderators. You will not be matched with this person again.",
   connection: "Your connection dropped. The chat has ended.",
 };
 

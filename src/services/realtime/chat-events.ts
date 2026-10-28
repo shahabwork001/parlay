@@ -15,6 +15,8 @@ export interface MatchFound {
   readonly mode: ChatMode;
   readonly role: "caller" | "callee";
   readonly sharedInterests: readonly string[];
+  /** On-device screening threshold for this session (stricter in low-trust pools). */
+  readonly safety: { readonly nsfwThreshold: number };
 }
 
 export interface ChatMessagePayload {
@@ -58,6 +60,8 @@ export interface ServerToClientEvents {
   "chat:typing": (payload: { readonly typing: boolean }) => void;
   "rtc:signal": (payload: RtcSignal) => void;
   "media:state": (payload: MediaState) => void;
+  /** Sent right before the server disconnects a banned person. */
+  "moderation:banned": (payload: Record<string, never>) => void;
 }
 
 export interface ClientToServerEvents {
@@ -75,10 +79,15 @@ export interface ClientToServerEvents {
   "chat:typing": (payload: { typing: boolean }) => void;
   "rtc:signal": (payload: RtcSignal) => void;
   "media:state": (payload: MediaState) => void;
+  "moderation:flag": (
+    payload: { source: "nsfw-screening"; score: number },
+    ack: (result: Ack<{ outcome: "recorded" | "banned" }>) => void,
+  ) => void;
 }
 
 /** Errors the server reports in `connect_error.message`. */
 export const CONNECT_ERRORS = {
   authRequired: "auth.required",
   termsOutdated: "terms.outdated",
+  banned: "moderation.banned",
 } as const;

@@ -6,6 +6,7 @@ const match = {
   mode: "text" as const,
   role: "caller" as const,
   sharedInterests: ["chess"],
+  safety: { nsfwThreshold: 0.6 },
 };
 
 describe("chat store", () => {

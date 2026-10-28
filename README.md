@@ -62,4 +62,4 @@ docker compose up -d --build   # http://localhost:3000
 | `/account`                                                                    | Email, Terms status and two-factor authentication                                      |
 | `/chat/text`                                                                  | Random text chat (requires an accepted Terms gate)                                     |
 | `/chat/video`                                                                 | Random video chat with camera preflight                                                |
-| `/settings`                                                                   | Theme, default camera and microphone, relay-only video, match sound                    |
+| $1                                                                            | `/banned`                                                                              | Ban notice with reason, duration and appeal form |

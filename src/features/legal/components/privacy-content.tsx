@@ -15,8 +15,14 @@ export function PrivacyContent() {
           encrypted relay. We never record them.
         </li>
         <li>
-          <strong>Full chat logs.</strong> Text messages are relayed in real time and not saved. The
-          only exception is the last few messages attached to a report, described below.
+          <strong>Full chat logs.</strong> Text messages are relayed in real time and not saved. To
+          make reporting possible, the last few messages of a live chat are held in memory for up to
+          15 minutes and then discarded; they are only kept if someone reports the chat.
+        </li>
+        <li>
+          <strong>Your camera picture, for screening.</strong> Video is checked for nudity on your
+          own device, by a model that runs in your browser. Frames are never uploaded; we only learn
+          that a check flagged your video, and your partner then sees it blurred.
         </li>
         <li>
           <strong>Your IP address, shown to anyone.</strong> Other users never see it. You can force
@@ -42,12 +48,14 @@ export function PrivacyContent() {
         <li>
           <strong>Report evidence.</strong> When someone reports a conversation, we keep one still
           image from the video at that moment and the last few text messages, so a moderator can
-          review it. Evidence is deleted automatically when the retention period ends, unless it is
-          needed for a child-safety investigation or a legal obligation.
+          review it. Evidence is deleted automatically after 30 days. Evidence in reports about
+          minors is preserved for one year, because we must keep it for reports to child-protection
+          authorities. Every time staff view evidence, it is recorded in an audit log.
         </li>
         <li>
-          <strong>Moderation records</strong>, such as warnings, bans and appeals, and an audit log
-          of staff actions.
+          <strong>Moderation records</strong>, such as warnings, bans and appeals, a trust score
+          that rises with ordinary chats and falls with valid reports, and an audit log of staff
+          actions. Bans on a network use a keyed hash of the IP address, never the address itself.
         </li>
         <li>
           <strong>Operational data</strong>: aggregated usage statistics and short-lived technical

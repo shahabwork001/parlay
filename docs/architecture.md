@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-4 implemented. Sections marked _planned_ describe the target design.
+Status: Phases 1-5 implemented. Sections marked _planned_ describe the target design.
 
 ## Layers
 

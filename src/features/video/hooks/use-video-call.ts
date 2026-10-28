@@ -14,8 +14,13 @@ import {
   stopStream,
 } from "@/services/media/media-devices";
 import type { MediaState, RtcSignal } from "@/services/realtime/chat-events";
+import { ContentScreener, createBlurredTrack } from "@/services/safety/content-screener";
+import { captureStreamFrame } from "@/services/media/snapshot";
 import { type ConnectionQuality, UNKNOWN_QUALITY } from "@/services/webrtc/connection-quality";
 import { PeerSession, type PeerState } from "@/services/webrtc/peer-session";
+
+/** On-device screening of the person's own video: running, flagged (blurred for the partner) or not possible here. */
+export type ScreeningState = "idle" | "active" | "flagged" | "unavailable";
 
 export type PreflightState =
   | { readonly status: "requesting" | "ready" }
@@ -33,6 +38,7 @@ export function useVideoCall() {
   const sessionId = useChatStore((state) => state.sessionId);
   const role = useChatStore((state) => state.role);
   const relayOnly = useSettingsStore((state) => state.relayOnly);
+  const nsfwThreshold = useChatStore((state) => state.nsfwThreshold);
 
   const [preflight, setPreflight] = useState<PreflightState>({ status: "requesting" });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -42,12 +48,17 @@ export function useVideoCall() {
   const [localMedia, setLocalMedia] = useState<MediaState>({ audio: true, video: true });
   const [quality, setQuality] = useState<ConnectionQuality>(UNKNOWN_QUALITY);
   const [devices, setDevices] = useState<AvailableDevices>(NO_DEVICES);
+  const [flaggedSessionId, setFlaggedSessionId] = useState<string | null>(null);
+  const [screeningUnavailable, setScreeningUnavailable] = useState(false);
 
   const peerRef = useRef<PeerSession | null>(null);
   const pendingSignalsRef = useRef<RtcSignal[]>([]);
   const localStreamRef = useRef<MediaStream | null>(null);
   const localMediaRef = useRef(localMedia);
   const iceCacheRef = useRef<{ servers: RTCIceServer[]; fetchedAt: number } | null>(null);
+  const screenerRef = useRef<ContentScreener | null>(null);
+  const thresholdRef = useRef(nsfwThreshold);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
 
   const deliverSignal = useCallback((signal: RtcSignal) => {
     const peer = peerRef.current;
@@ -60,7 +71,16 @@ export function useVideoCall() {
     onSignal: deliverSignal,
     onMediaState: setPartnerMedia,
   });
-  const { sendSignal, sendMediaState } = chat;
+  const { sendSignal, sendMediaState, flagContent } = chat;
+
+  useEffect(() => {
+    thresholdRef.current = nsfwThreshold;
+    screenerRef.current?.setThreshold(nsfwThreshold);
+  }, [nsfwThreshold]);
+
+  useEffect(() => {
+    remoteStreamRef.current = remoteStream;
+  }, [remoteStream]);
 
   /**
    * Opens camera and microphone with the saved device choice. Resolves to `apply` (use the result)
@@ -150,6 +170,50 @@ export function useVideoCall() {
     };
   }, [sessionId, role, relayOnly, iceServers, sendSignal, sendMediaState]);
 
+  // Screen the person's own camera for the whole chat. Frames are classified on the device only.
+  useEffect(() => {
+    const stream = localStreamRef.current;
+    if (!sessionId || !stream) return;
+    const screener = new ContentScreener(thresholdRef.current, {
+      onChange: (flagged, score) => {
+        setFlaggedSessionId(flagged ? sessionId : null);
+        if (flagged) flagContent(score);
+      },
+      onUnavailable: () => setScreeningUnavailable(true),
+    });
+    screenerRef.current = screener;
+    screener.start(stream);
+    return () => {
+      screener.stop();
+      screenerRef.current = null;
+    };
+  }, [sessionId, flagContent]);
+
+  const screening: ScreeningState = screeningUnavailable
+    ? "unavailable"
+    : !sessionId
+      ? "idle"
+      : flaggedSessionId === sessionId
+        ? "flagged"
+        : "active";
+
+  // While flagged, the partner receives a blurred copy of the camera instead of the camera itself.
+  useEffect(() => {
+    const stream = localStreamRef.current;
+    const peer = peerRef.current;
+    if (screening !== "flagged" || !stream || !peer || peerState === null) return;
+    const blurred = createBlurredTrack(stream);
+    if (blurred) void peer.replaceTrack(blurred.track);
+    return () => {
+      const camera = stream.getVideoTracks()[0];
+      if (camera) void peer.replaceTrack(camera).catch(() => undefined);
+      blurred?.stop();
+    };
+  }, [screening, peerState]);
+
+  /** A still frame of the partner's video for a report, or null in text-only moments. */
+  const capturePartnerFrame = useCallback(() => captureStreamFrame(remoteStreamRef.current), []);
+
   useEffect(() => {
     if (peerState !== "connected") return;
     const timer = window.setInterval(() => {
@@ -206,7 +270,9 @@ export function useVideoCall() {
       old.stop();
     }
     stream.addTrack(track);
-    await peerRef.current?.replaceTrack(track);
+    // While flagged the partner keeps getting the blurred copy, which follows the new camera.
+    if (kind === "microphone" || !screenerRef.current?.flagged)
+      await peerRef.current?.replaceTrack(track);
     setLocalStream(new MediaStream(stream.getTracks()));
   }, []);
 
@@ -224,5 +290,7 @@ export function useVideoCall() {
     toggleMicrophone,
     toggleCamera,
     switchDevice,
+    screening,
+    capturePartnerFrame,
   };
 }

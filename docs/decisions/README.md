@@ -11,3 +11,4 @@ Template: Context, Decision, Consequences. Supersede rather than edit accepted d
 | [0005](0005-persisted-client-state.md) | Persisted Zustand stores hydrate after mount     | Accepted |
 | [0006](0006-socket-io-client.md)       | Socket.IO client for real-time                   | Accepted |
 | [0007](0007-session-handling.md)       | In-memory access token with silent refresh       | Accepted |
+| [0008](0008-on-device-screening.md)    | On-device NSFW screening in a Web Worker         | Accepted |

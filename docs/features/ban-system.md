@@ -1,6 +1,6 @@
 # Feature: Ban system
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Ban by account, device hash and IP/subnet; temporary or permanent; shadow bans.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+`useChat` ban handling; `/banned`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+None.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: a refused connection or a ban event during a chat sends the person to /banned.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

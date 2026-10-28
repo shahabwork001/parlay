@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { usePreferencesStore } from "@/features/preferences/store/preferences-store";
 import { playMatchSound } from "@/features/settings/match-sound";
@@ -30,6 +31,7 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
   const socketRef = useRef<ChatSocket | null>(null);
   const typingRef = useRef({ lastSent: 0, idleTimer: 0, partnerTimer: 0 });
   const optionsRef = useRef(options);
+  const router = useRouter();
 
   useEffect(() => {
     optionsRef.current = options;
@@ -57,7 +59,12 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       if (!principal) return store.unavailable("session");
       if (principal.termsVersion !== TERMS_VERSION) return store.unavailable("terms");
 
+      const showBan = () => {
+        socket.disconnect();
+        router.replace("/banned");
+      };
       const socket = openChatConnection((code) => {
+        if (code === CONNECT_ERRORS.banned) return showBan();
         store.unavailable(code === CONNECT_ERRORS.termsOutdated ? "terms" : "session");
         socket.disconnect();
       });
@@ -92,6 +99,7 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       });
       socket.on("rtc:signal", (signal) => optionsRef.current.onSignal?.(signal));
       socket.on("media:state", (state) => optionsRef.current.onMediaState?.(state));
+      socket.on("moderation:banned", showBan);
     });
 
     return () => {
@@ -101,7 +109,7 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-  }, [join]);
+  }, [join, router]);
 
   const next = useCallback(() => {
     const socket = socketRef.current;
@@ -164,5 +172,30 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
     socketRef.current?.emit("media:state", state);
   }, []);
 
-  return { start: join, next, stop, block, send, typed, sendSignal, sendMediaState };
+  /** After a report the server has already ended the chat and blocked the partner. */
+  const reported = useCallback(() => {
+    useChatStore.getState().ended("reported");
+  }, []);
+
+  /** On-device screening flagged the person's own video; the server counts repeated flags. */
+  const flagContent = useCallback((score: number) => {
+    socketRef.current?.emit(
+      "moderation:flag",
+      { source: "nsfw-screening", score },
+      () => undefined,
+    );
+  }, []);
+
+  return {
+    start: join,
+    next,
+    stop,
+    block,
+    reported,
+    send,
+    typed,
+    sendSignal,
+    sendMediaState,
+    flagContent,
+  };
 }

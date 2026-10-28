@@ -7,6 +7,8 @@ import { Kbd } from "@/components/shared/kbd";
 import { Button } from "@/components/ui/button";
 import { Composer } from "@/features/chat/components/composer";
 import { MessageList } from "@/features/chat/components/message-list";
+import { ReportDialog } from "@/features/moderation/components/report-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { type ChatPhase, useChatStore } from "@/features/chat/store/chat-store";
 import { cn } from "@/lib/utils";
 import { useVideoCall } from "../hooks/use-video-call";
@@ -33,6 +35,8 @@ export function VideoChatScreen() {
   const { chat } = call;
   const phase = useChatStore((state) => state.phase);
   const unavailableReason = useChatStore((state) => state.unavailableReason);
+  const reportableSessionId = useChatStore((state) => state.reportableSessionId);
+  const endedReason = useChatStore((state) => state.endedReason);
   const [started, setStarted] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const canSkip = phase === "chatting" || phase === "ended";
@@ -80,10 +84,22 @@ export function VideoChatScreen() {
   }
 
   const overlay = remoteOverlay(phase, call.peerState, !call.partnerMedia.video);
+  const canReport =
+    (phase === "chatting" || phase === "ended") &&
+    endedReason !== "reported" &&
+    endedReason !== "blocked";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+        {call.screening === "flagged" ? (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>
+              Your video may break the Community Guidelines, so your partner sees it blurred. Adjust
+              your camera; repeated warnings lead to a temporary ban.
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-3 md:grid-cols-2 md:grid-rows-1">
           <VideoTile
             stream={phase === "chatting" ? call.remoteStream : null}
@@ -101,7 +117,11 @@ export function VideoChatScreen() {
             hidden={!call.localMedia.video}
             className="min-h-0"
           >
-            {call.localMedia.video ? null : "Your camera is off"}
+            {!call.localMedia.video
+              ? "Your camera is off"
+              : call.screening === "flagged"
+                ? "Blurred for your partner"
+                : null}
           </VideoTile>
         </div>
 
@@ -149,6 +169,13 @@ export function VideoChatScreen() {
           <div className="flex items-center gap-1">
             {phase === "chatting" && call.peerState === "connected" ? (
               <QualityIndicator quality={call.quality} />
+            ) : null}
+            {canReport ? (
+              <ReportDialog
+                sessionId={reportableSessionId}
+                captureSnapshot={call.capturePartnerFrame}
+                onReported={chat.reported}
+              />
             ) : null}
             {phase === "chatting" ? (
               <Button variant="ghost" size="sm" onClick={chat.block}>

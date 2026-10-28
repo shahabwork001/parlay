@@ -43,7 +43,8 @@ export function openChatConnection(onFatalError: (code: string) => void): ChatSo
     }
     if (
       error.message === CONNECT_ERRORS.termsOutdated ||
-      error.message === CONNECT_ERRORS.authRequired
+      error.message === CONNECT_ERRORS.authRequired ||
+      error.message === CONNECT_ERRORS.banned
     ) {
       onFatalError(error.message);
     }

@@ -4,7 +4,10 @@ import type { ChatMessagePayload, EndReason, MatchFound } from "@/services/realt
 export type ChatPhase =
   "connecting" | "searching" | "chatting" | "ended" | "stopped" | "unavailable";
 
-export type ChatEndReason = EndReason | "blocked" | "connection";
+export type ChatEndReason = EndReason | "blocked" | "reported" | "connection";
+
+/** Used until the server sends the threshold for the session. */
+export const DEFAULT_NSFW_THRESHOLD = 0.75;
 
 export interface ChatMessage {
   readonly id: string;
@@ -16,6 +19,10 @@ export interface ChatMessage {
 interface ChatState {
   phase: ChatPhase;
   sessionId: string | null;
+  /** The latest chat, kept after it ends so it can still be reported. */
+  reportableSessionId: string | null;
+  /** On-device screening threshold for the current session. */
+  nsfwThreshold: number;
   /** The caller waited longer; in video calls the callee is the "polite" peer. */
   role: "caller" | "callee" | null;
   sharedInterests: readonly string[];
@@ -43,6 +50,8 @@ interface ChatState {
 const initial = {
   phase: "connecting" as ChatPhase,
   sessionId: null,
+  reportableSessionId: null,
+  nsfwThreshold: DEFAULT_NSFW_THRESHOLD,
   role: null,
   sharedInterests: [],
   messages: [],
@@ -60,6 +69,7 @@ export const useChatStore = create<ChatState>()((set) => ({
     set({
       phase: "searching",
       sessionId: null,
+      reportableSessionId: null,
       role: null,
       messages: [],
       partnerTyping: false,
@@ -70,6 +80,8 @@ export const useChatStore = create<ChatState>()((set) => ({
     set({
       phase: "chatting",
       sessionId: match.sessionId,
+      reportableSessionId: match.sessionId,
+      nsfwThreshold: match.safety.nsfwThreshold,
       role: match.role,
       sharedInterests: match.sharedInterests,
       messages: [],

@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  type APIRequestContext,
+  type Browser,
+  type BrowserContext,
+  expect,
+  type Page,
+} from "@playwright/test";
 
 export const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? "http://localhost:8025";
 export const PASSWORD = "correct horse battery staple";
@@ -61,4 +67,47 @@ export async function signIn(page: Page, email: string): Promise<void> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+/**
+ * Two independent browsers (separate cookies, devices and sessions) share a unique interest and pass
+ * the gate at the same moment, so they find each other well within the random-fallback window and
+ * never pair with other tests' users.
+ */
+export async function openTextGate(
+  browser: Browser,
+  openContexts: BrowserContext[],
+  interest: string,
+): Promise<Page> {
+  const context = await browser.newContext();
+  openContexts.push(context);
+  const page = await context.newPage();
+  await page.goto("/", { waitUntil: "networkidle" });
+  const interests = page.getByRole("textbox", { name: "Interests" });
+  await interests.fill(interest);
+  await interests.press("Enter");
+  await page.getByRole("button", { name: "Start text" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("checkbox", { name: "I am 18 or older." }).check();
+  await dialog.getByRole("checkbox", { name: /I agree to the Terms/ }).check();
+  return page;
+}
+
+export async function connectedTextPair(
+  browser: Browser,
+  openContexts: BrowserContext[],
+): Promise<[Page, Page]> {
+  const interest = `e2e${randomUUID().slice(0, 8)}`;
+  const pages = await Promise.all([
+    openTextGate(browser, openContexts, interest),
+    openTextGate(browser, openContexts, interest),
+  ]);
+  await Promise.all(
+    pages.map((page) => page.getByRole("button", { name: "Agree and continue" }).click()),
+  );
+  for (const page of pages) {
+    await expect(page).toHaveURL(/\/chat\/text$/);
+    await expect(page.getByText(`You both like ${interest}.`)).toBeVisible({ timeout: 15_000 });
+  }
+  return [pages[0], pages[1]];
 }

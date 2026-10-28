@@ -1,6 +1,6 @@
 # Feature: Text moderation
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Admin-editable word lists, regex rules for phone numbers / links / handles, and 
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+`useChat` send errors
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+None.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: a rejected message is marked Not delivered with the server's explanation; filtered text replaces the optimistic copy.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).
