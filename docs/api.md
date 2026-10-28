@@ -67,6 +67,8 @@ Machine-readable spec: `GET /openapi.json` (OpenAPI 3.1, generated from zod sche
 | PUT      | `/api/v1/admin/staff/roles`                      | `staff.manage`                                              |                                          | `{ email or userId, roles }`; confirmed email required, last SuperAdmin and own roles protected, signs the person out                                                                        |
 | GET      | `/api/v1/admin/audit`                            | `audit.view`                                                |                                          | Query `action`, `actorId`, `targetId`, `page`; newest first                                                                                                                                  |
 | GET      | `/api/v1/admin/system`                           | `system.view`                                               |                                          | Dependency health (MongoDB, Redis, RabbitMQ, TURN, workers) and worker queue depths                                                                                                          |
+| GET      | `/api/v1/site`                                   | none                                                        |                                          | `{ maintenance: { enabled, message }, announcement: { message, tone } \| null, features: { textChat, videoChat, registration } }`; cached 15 s                                               |
+| GET, PUT | `/api/v1/admin/site`                             | `flags.manage`                                              |                                          | Site configuration (GET adds `updatedAt`, `updatedBy`); PUT replaces it, audit-logged                                                                                                        |
 
 Admin routes (`/api/v1/admin/*`) need the listed permission on a session that passed two-factor authentication; otherwise 403 with `auth.forbidden` or `auth.mfa_required`. Admin error codes: `report.already_resolved`, `report.escalation_restricted`, `report.reference_required`, `report.escalation_not_applicable`, `ban.not_active`, `ban.no_pending_appeal`, `ban.no_targets`, `user.not_found`, `staff.email_not_verified`, `staff.last_super_admin`, `staff.self`, `admin.concurrent_change`.
 
@@ -74,23 +76,24 @@ Session responses: `{ accessToken, accessTokenExpiresAt, principal: { kind, role
 
 ### Identity error codes
 
-| errorCode                              | Status | Meaning                                               |
-| -------------------------------------- | ------ | ----------------------------------------------------- |
-| `terms.outdated`                       | 400    | The submitted Terms version is not current            |
-| `auth.invalid_credentials`             | 401    | Email or password wrong (same for unknown emails)     |
-| `auth.two_factor_required`             | 401    | Resend with `totpCode` or `recoveryCode`              |
-| `auth.invalid_two_factor`              | 401    | Wrong code (counts as a failed attempt)               |
-| `auth.email_not_verified`              | 403    | Confirm the email first                               |
-| `auth.locked`                          | 429    | Too many failed attempts; locked for 15 minutes       |
-| `auth.session_expired`                 | 401    | Refresh token missing, expired, reused or revoked     |
-| `auth.invalid_token`                   | 400    | Email link invalid, expired or already used           |
-| `auth.required`                        | 401    | Bearer token missing or invalid                       |
-| `auth.forbidden` / `auth.mfa_required` | 403    | Missing permission / staff session without two-factor |
-| `rate_limited`                         | 429    | Per-IP limit exceeded                                 |
+| errorCode                              | Status | Meaning                                                 |
+| -------------------------------------- | ------ | ------------------------------------------------------- |
+| `terms.outdated`                       | 400    | The submitted Terms version is not current              |
+| `auth.invalid_credentials`             | 401    | Email or password wrong (same for unknown emails)       |
+| `auth.two_factor_required`             | 401    | Resend with `totpCode` or `recoveryCode`                |
+| `auth.invalid_two_factor`              | 401    | Wrong code (counts as a failed attempt)                 |
+| `auth.email_not_verified`              | 403    | Confirm the email first                                 |
+| `auth.locked`                          | 429    | Too many failed attempts; locked for 15 minutes         |
+| `auth.session_expired`                 | 401    | Refresh token missing, expired, reused or revoked       |
+| `auth.invalid_token`                   | 400    | Email link invalid, expired or already used             |
+| `auth.required`                        | 401    | Bearer token missing or invalid                         |
+| `auth.registration_closed`             | 403    | New accounts are switched off in the site configuration |
+| `auth.forbidden` / `auth.mfa_required` | 403    | Missing permission / staff session without two-factor   |
+| `rate_limited`                         | 429    | Per-IP limit exceeded                                   |
 
 ## Socket.IO events
 
-Connect to the API origin with `socket.io-client` and `auth: { token: <access token> }`. The handshake is rejected with `connect_error` `auth.required` (missing or invalid token), `terms.outdated` (the accepted Terms version is not current) or `moderation.banned` (an active full ban on the account, device, IP or subnet). Every client event with a callback receives `{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
+Connect to the API origin with `socket.io-client` and `auth: { token: <access token> }`. The handshake is rejected with `connect_error` `auth.required` (missing or invalid token), `terms.outdated` (the accepted Terms version is not current), `site.maintenance` (maintenance mode; staff may still connect) or `moderation.banned` (an active full ban on the account, device, IP or subnet). Every client event with a callback receives `{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
 
 | Direction        | Event                | Payload                                                                                                                                | Ack data / notes                                                                                 |
 | ---------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -112,7 +115,7 @@ Connect to the API origin with `socket.io-client` and `auth: { token: <access to
 | server to client | `moderation:banned`  | `{}`                                                                                                                                   | sent right before a banned person is disconnected; open `/banned`                                |
 | server to client | `moderation:warning` | `{ message }`                                                                                                                          | a moderator upheld a report with a warning; show it, keep chatting                               |
 
-Ack error codes: `validation`, `chat.no_partner`, `chat.message_blocked` (slurs, or profanity in low-trust pools), `chat.spam` (the same message a 4th time within 30 s), `rate_limited` (30 searches per minute, 5 messages per second, per account, device and network), `moderation.banned`, `internal`. The TypeScript contract lives in `src/api/realtime/chat-events.ts` and is mirrored in the frontend at `src/services/realtime/chat-events.ts`.
+Ack error codes: `validation`, `chat.no_partner`, `chat.message_blocked` (slurs, or profanity in low-trust pools), `chat.spam` (the same message a 4th time within 30 s), `rate_limited` (30 searches per minute, 5 messages per second, per account, device and network), `moderation.banned`, `site.maintenance`, `chat.mode_disabled` (that chat mode is switched off), `internal`. The TypeScript contract lives in `src/api/realtime/chat-events.ts` and is mirrored in the frontend at `src/services/realtime/chat-events.ts`.
 
 ## Integration events
 

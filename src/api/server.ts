@@ -13,6 +13,7 @@ import {
 import { loadApiConfig } from "../infrastructure/config/config.js";
 import { createIdentityContext } from "../infrastructure/identity/identity-composition.js";
 import { createInfrastructure } from "../infrastructure/infrastructure.js";
+import { MongoSiteConfig } from "../infrastructure/site/mongo-site-config.js";
 import { RedisMatchmaker } from "../infrastructure/matchmaking/redis-matchmaker.js";
 import { createModerationContext } from "../infrastructure/moderation/moderation-composition.js";
 import { HmacTurnCredentialProvider } from "../infrastructure/rtc/turn-credentials.js";
@@ -29,6 +30,7 @@ import {
   registerModerationOpenApi,
 } from "./features/moderation/moderation-router.js";
 import { createRtcRouter, registerRtcOpenApi } from "./features/rtc/rtc-router.js";
+import { createSiteRouter, registerSiteOpenApi } from "./features/site/site-router.js";
 import { ChatGateway, DEFAULT_CHAT_RATE_LIMITS } from "./realtime/chat-gateway.js";
 import { PresenceSweeper } from "./realtime/presence-sweeper.js";
 import { createSocketServer } from "./realtime/socket-server.js";
@@ -47,6 +49,7 @@ const rateLimiter = new RedisRateLimiter(infrastructure.redis);
 const moderation = createModerationContext(infrastructure, config);
 const clock = () => new Date();
 const liveStats = new RedisLiveStats(infrastructure.redis);
+const siteConfig = new MongoSiteConfig(infrastructure.database);
 const admin = createAdminContext(infrastructure, moderation, identity, liveStats);
 
 /** The admin system view also covers TURN (TCP reachability) and the workers process. */
@@ -98,6 +101,7 @@ const app = createApp({
         rateLimiter,
         cookieSecure: config.cookieSecure,
         rateLimitMultiplier: config.rateLimitMultiplier,
+        siteConfig,
       }),
       openApi: registerIdentityOpenApi,
     },
@@ -116,6 +120,7 @@ const app = createApp({
       router: createAdminRouter({ context: admin, healthChecks: systemChecks }),
       openApi: registerAdminOpenApi,
     },
+    { router: createSiteRouter({ siteConfig, audit: moderation.audit }), openApi: registerSiteOpenApi },
   ],
 });
 
@@ -128,6 +133,7 @@ const sockets = createSocketServer(server, {
   accessTokens: identity.accessTokens,
   termsVersion: config.termsVersion,
   bans: moderation.bans,
+  siteConfig,
   hasher: identity.hasher,
   trustProxy: config.trustProxy,
   logger: logger.child({ component: "socket" }),
@@ -154,6 +160,7 @@ const chat = new ChatGateway(sockets.io, {
   ),
   policy: moderation.policy,
   matchStats: liveStats,
+  siteConfig,
   logger: logger.child({ component: "chat" }),
   retryIntervalMs: 2000,
   presenceIntervalMs: 10_000,

@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 7: site configuration; monetisation deferred)
+
+- Site configuration: maintenance mode with a message, announcement banner, switches for text chat, video chat and new accounts. `GET /api/v1/site` (public) and `GET/PUT /api/v1/admin/site` (`flags.manage`), audit-logged.
+- Enforcement: `site.maintenance` refuses connections and searches for non-staff, `chat.mode_disabled` refuses searches in a switched-off mode, `auth.registration_closed` (403) when sign-up is closed.
+- ADR 0015: launch free; plans, payments, premium features and ad slots deferred.
+- Tests: site routes (public view, permission, audit, closed registration) and gateway enforcement (197 unit and 68 integration in total).
+
+### Fixed
+
+- Gateway integration tests could pair a test's clients with a stale ticket from the previous test; teardown now waits until the queues are empty.
+
 ### Added (Phase 6: admin panel)
 
 - Admin API under `/api/v1/admin`, each route behind a permission and a two-factor session: dashboard, moderation queue and report detail, report decisions (dismiss, warn, ban) and minor-safety escalation, bans (list, manual ban, lift) and appeal decisions, user search and detail with sign-in history, text rules editor, staff roles, audit log, system health.

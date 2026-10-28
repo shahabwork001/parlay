@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-6 implemented (foundation, identity, matchmaking, text and video chat, moderation and safety, admin panel). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
+Status: Phases 1-7 implemented (foundation, identity, matchmaking, text and video chat, moderation and safety, admin panel, site configuration). Monetisation is deferred ([ADR 0015](decisions/0015-free-launch.md)). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
 
@@ -201,6 +201,10 @@ flowchart LR
 - Decisions on a report lift the automatic suspension it caused, then warn (`moderation:warning`) or ban; trust moves -15 for the reported person when upheld, -5 for the reporter when dismissed.
 - Role changes sign the person out everywhere, so the next session carries the new roles and needs 2FA.
 - `create-staff` bootstraps staff (2FA enabled) from the API container.
+
+## Site configuration (implemented in Phase 7)
+
+One `site_config` document (maintenance, announcement, feature switches), cached in each API process for 15 seconds. The socket admission, the gateway's search and the registration route read it; staff bypass maintenance. Public at `GET /api/v1/site`, edited in the admin panel. See [ADR 0015](decisions/0015-free-launch.md).
 
 ## Health
 

@@ -25,7 +25,7 @@ Redis `stats:matches:{minute}` and `stats:wait:{minute}` counters (2 h TTL); pre
 
 ## Current state (what works, what's missing, known issues)
 
-Done: online now, waiting (text/video), active chats, matches per minute (60 min series), average wait of the earlier person (15 min), reports per hour (24 h series), open reports by tier, pending appeals. Every /api/v1/admin route needs its permission on a two-factor session (`requirePermission`). Revenue arrives with plans in Phase 7.
+Done: online now, waiting (text/video), active chats, matches per minute (60 min series), average wait of the earlier person (15 min), reports per hour (24 h series), open reports by tier, pending appeals. Every /api/v1/admin route needs its permission on a two-factor session. Revenue is deferred with monetisation (ADR 0015).
 
 ## Changelog
 

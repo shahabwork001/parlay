@@ -13,6 +13,7 @@ import {
   createTestIdentity,
   fakeHasher,
   lastEmailToken,
+  MutableSiteConfig,
   TEST_TERMS_VERSION,
   type TestIdentity,
 } from "../../support/identity-fakes.js";
@@ -24,7 +25,11 @@ const allowAll: RateLimiter = {
 const FINGERPRINT = "device-fingerprint-0001";
 const gate = { ageConfirmed: true, termsVersion: TEST_TERMS_VERSION };
 
-function buildApp(identity: TestIdentity, rateLimiter: RateLimiter = allowAll) {
+function buildApp(
+  identity: TestIdentity,
+  rateLimiter: RateLimiter = allowAll,
+  siteConfig: MutableSiteConfig = new MutableSiteConfig(),
+) {
   return createApp({
     logger,
     corsAllowedOrigins: ["http://localhost:3000"],
@@ -39,6 +44,7 @@ function buildApp(identity: TestIdentity, rateLimiter: RateLimiter = allowAll) {
           rateLimiter,
           cookieSecure: true,
           rateLimitMultiplier: 1,
+          siteConfig,
         }),
         openApi: registerIdentityOpenApi,
       },

@@ -6,6 +6,7 @@ import { Server, type Socket } from "socket.io";
 import type { AccessTokenService, KeyedHasher } from "../../application/features/identity/ports.js";
 import type { BanService } from "../../application/features/moderation/bans.js";
 import { networkHashes } from "../../application/features/moderation/network.js";
+import type { SiteConfigProvider } from "../../application/features/site/site-config.js";
 import type { Logger } from "../../infrastructure/observability/logger.js";
 import type {
   ClientToServerEvents,
@@ -23,6 +24,7 @@ export interface SocketServerOptions {
   readonly accessTokens: AccessTokenService;
   readonly termsVersion: string;
   readonly bans: BanService;
+  readonly siteConfig: SiteConfigProvider;
   readonly hasher: KeyedHasher;
   /** Same value as Express `trust proxy`, so sockets see the same client address as HTTP. */
   readonly trustProxy: string;
@@ -39,6 +41,7 @@ export const CONNECT_ERRORS = {
   authRequired: "auth.required",
   termsOutdated: "terms.outdated",
   banned: "moderation.banned",
+  maintenance: "site.maintenance",
 } as const;
 
 /** Compiles an Express-style `trust proxy` value (true, a hop count, or address/subnet names). */
@@ -82,6 +85,9 @@ export function createSocketServer(httpServer: HttpServer, options: SocketServer
       const principal = token ? await options.accessTokens.verify(token) : null;
       if (!principal) return CONNECT_ERRORS.authRequired;
       if (principal.termsVersion !== options.termsVersion) return CONNECT_ERRORS.termsOutdated;
+      // Staff can still connect during maintenance, to check the site before reopening it.
+      if (principal.roles.length === 0 && (await options.siteConfig.current()).maintenance.enabled)
+        return CONNECT_ERRORS.maintenance;
 
       const identity = {
         kind: principal.kind,

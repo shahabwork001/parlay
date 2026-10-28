@@ -20,6 +20,8 @@ import { JwtAccessTokenService } from "../../src/infrastructure/identity/jwt-acc
 import { createInfrastructure, type Infrastructure } from "../../src/infrastructure/infrastructure.js";
 import { RedisMatchmaker } from "../../src/infrastructure/matchmaking/redis-matchmaker.js";
 import { MongoBlockRepository } from "../../src/infrastructure/persistence/mongo/block-repository.js";
+import { DEFAULT_SITE_CONFIG } from "../../src/domain/site/site-config.js";
+import { MutableSiteConfig } from "../support/identity-fakes.js";
 import { silentLogger, testInfrastructureConfig, waitFor } from "./support.js";
 
 type Client = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -62,6 +64,8 @@ describe("ChatGateway over Socket.IO", () => {
   let matchmaker: RedisMatchmaker;
   let url: string;
   const clients: Client[] = [];
+  const site = new MutableSiteConfig();
+  const prefix = `mm-gateway-${randomUUID()}`;
 
   beforeAll(async () => {
     const config = testInfrastructureConfig();
@@ -75,6 +79,7 @@ describe("ChatGateway over Socket.IO", () => {
       accessTokens: tokens,
       termsVersion: TERMS,
       bans: moderation.bans,
+      siteConfig: site,
       hasher: new HmacKeyedHasher("integration-test-hash-secret-0123456789"),
       trustProxy: "loopback",
       logger: silentLogger,
@@ -88,7 +93,7 @@ describe("ChatGateway over Socket.IO", () => {
         sessionTtlSeconds: 600,
         reportWindowSeconds: 600,
       },
-      `mm-gateway-${randomUUID()}`,
+      prefix,
     );
     gateway = new ChatGateway(sockets.io, {
       matchmaker,
@@ -109,6 +114,7 @@ describe("ChatGateway over Socket.IO", () => {
       ),
       policy: moderation.policy,
       matchStats: { recordMatch: () => Promise.resolve() },
+      siteConfig: site,
       logger: silentLogger,
       retryIntervalMs: 100,
       presenceIntervalMs: 1000,
@@ -118,8 +124,15 @@ describe("ChatGateway over Socket.IO", () => {
     url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;
   });
 
-  afterEach(() => {
+  // Disconnect cleanup runs on the server asynchronously; wait until nobody is left waiting, so a
+  // stale ticket cannot pair with the next test's clients.
+  afterEach(async () => {
     for (const client of clients.splice(0)) client.disconnect();
+    await waitFor(async () => {
+      const queues = await infrastructure.redis.keys(`${prefix}:queue:*`);
+      const sizes = await Promise.all(queues.map((queue) => infrastructure.redis.zcard(queue)));
+      return sizes.every((size) => size === 0);
+    });
   });
 
   afterAll(async () => {
@@ -332,6 +345,34 @@ describe("ChatGateway over Socket.IO", () => {
     socket.emit("moderation:flag", { source: "nsfw-screening", score: 0.97 }, () => undefined);
     await banned;
     await disconnected;
+  });
+
+  it("follows the site configuration: maintenance refuses non-staff, disabled modes refuse searches", async () => {
+    try {
+      site.config = {
+        ...DEFAULT_SITE_CONFIG,
+        features: { ...DEFAULT_SITE_CONFIG.features, videoChat: false },
+      };
+      const socket = await client();
+      expect(
+        await socket.emitWithAck("queue:join", { mode: "video", language: "any", interests: [] }),
+      ).toMatchObject({
+        ok: false,
+        error: { code: "chat.mode_disabled" },
+      });
+
+      site.config = { ...DEFAULT_SITE_CONFIG, maintenance: { enabled: true, message: "Back at noon." } };
+      expect(
+        await socket.emitWithAck("queue:join", { mode: "text", language: "any", interests: [] }),
+      ).toMatchObject({
+        ok: false,
+        error: { code: "site.maintenance", message: "Back at noon." },
+      });
+      await expect(client()).rejects.toThrow("site.maintenance");
+      await client(principal({ kind: "user", roles: ["Moderator"] }));
+    } finally {
+      site.config = DEFAULT_SITE_CONFIG;
+    }
   });
 
   it("rejects invalid payloads and messages without a partner", async () => {

@@ -24,7 +24,9 @@ import type {
 } from "../../src/application/features/identity/ports.js";
 import type { AggregateRoot } from "../../src/domain/common/aggregate-root.js";
 import type { Device } from "../../src/domain/identity/device.js";
+import type { SiteConfigProvider } from "../../src/application/features/site/site-config.js";
 import type { Role } from "../../src/domain/identity/roles.js";
+import { DEFAULT_SITE_CONFIG, type SiteConfig } from "../../src/domain/site/site-config.js";
 import type { User } from "../../src/domain/identity/user.js";
 import { JwtAccessTokenService } from "../../src/infrastructure/identity/jwt-access-tokens.js";
 
@@ -221,4 +223,13 @@ export function lastEmailToken(identity: TestIdentity, to: string): string {
   const token = email?.link ? new URL(email.link).searchParams.get("token") : null;
   if (!token) throw new Error(`No email with a token was sent to ${to}.`);
   return token;
+}
+
+/** A site configuration that tests can change (maintenance, feature flags). */
+export class MutableSiteConfig implements SiteConfigProvider {
+  config: SiteConfig = DEFAULT_SITE_CONFIG;
+
+  current(): Promise<SiteConfig> {
+    return Promise.resolve(this.config);
+  }
 }

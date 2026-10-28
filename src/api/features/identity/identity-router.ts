@@ -33,6 +33,7 @@ import {
 } from "../../../application/features/identity/schemas.js";
 import type { AuthSession } from "../../../application/features/identity/sessions.js";
 import type { RateLimiter } from "../../../application/abstractions/rate-limiter.js";
+import type { SiteConfigProvider } from "../../../application/features/site/site-config.js";
 import { currentPrincipal, requireAuthentication } from "../../auth/authentication.js";
 import { sendAppError, sendProblem } from "../../http/problem-details.js";
 import { rateLimit } from "../../middleware/rate-limit.js";
@@ -45,6 +46,8 @@ export interface IdentityRouterDependencies {
   readonly rateLimiter: RateLimiter;
   readonly cookieSecure: boolean;
   readonly rateLimitMultiplier: number;
+  /** Registration can be closed from the admin panel. */
+  readonly siteConfig: SiteConfigProvider;
 }
 
 const MINUTE = 60_000;
@@ -55,6 +58,7 @@ export function createIdentityRouter({
   rateLimiter,
   cookieSecure,
   rateLimitMultiplier,
+  siteConfig,
 }: IdentityRouterDependencies): Router {
   const router = Router();
   const limit = (name: string, maxRequests: number, windowMs: number) =>
@@ -107,6 +111,14 @@ export function createIdentityRouter({
     limit("auth.register", 5, HOUR),
     validate({ body: registerRequestSchema }),
     async (request, response) => {
+      if (!(await siteConfig.current()).features.registration) {
+        sendProblem(request, response, {
+          status: 403,
+          detail: "New accounts are paused right now. You can still chat without an account.",
+          errorCode: "auth.registration_closed",
+        });
+        return;
+      }
       const result = await registerUser.execute(validatedInput<RegisterRequest>(response).body);
       if (!result.ok) {
         sendAppError(request, response, result.error);

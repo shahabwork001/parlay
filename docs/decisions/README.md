@@ -18,3 +18,4 @@ Short records of significant technical choices. Template: Context, Decision, Con
 | [0012](0012-moderation-pipeline.md)  | Synchronous safety actions, asynchronous scoring, pluggable classifier | Accepted |
 | [0013](0013-bans-trust-and-pools.md) | Bans with a Redis write-through cache; trust and shadow bans as pools  | Accepted |
 | [0014](0014-admin-read-side.md)      | Admin read side plus audited commands; server-side staff tool          | Accepted |
+| [0015](0015-free-launch.md)          | Launch free; defer monetisation, keep operator controls                | Accepted |

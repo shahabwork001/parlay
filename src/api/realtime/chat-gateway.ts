@@ -28,6 +28,8 @@ import {
   typingSchema,
 } from "../../application/features/chat/schemas.js";
 import type { ChatSessionControl } from "../../application/features/chat/session-control.js";
+import type { SiteConfigProvider } from "../../application/features/site/site-config.js";
+import { DEFAULT_MAINTENANCE_MESSAGE, isChatModeEnabled } from "../../domain/site/site-config.js";
 import type { BanService } from "../../application/features/moderation/bans.js";
 import type { RecordContentFlag } from "../../application/features/moderation/content-flags.js";
 import { ContentFlagged, SessionEnded } from "../../application/features/moderation/events.js";
@@ -69,6 +71,7 @@ export interface ChatGatewayOptions {
   readonly recordContentFlag: RecordContentFlag;
   readonly policy: ModerationPolicy;
   readonly matchStats: MatchStatsRecorder;
+  readonly siteConfig: SiteConfigProvider;
   readonly logger: Logger;
   /** How often a waiting participant retries pairing (picks up the interest fallback). */
   readonly retryIntervalMs: number;
@@ -205,6 +208,19 @@ export class ChatGateway implements ChatSessionControl {
     const startSearch = async (ack: unknown, ticket: Omit<MatchTicket, "pool"> | null) => {
       if (!ticket) {
         respond(ack, INVALID);
+        return;
+      }
+      const site = await this.options.siteConfig.current();
+      if (!isChatModeEnabled(site, ticket.mode) && socket.data.principal.roles.length === 0) {
+        respond(
+          ack,
+          site.maintenance.enabled
+            ? failure("site.maintenance", site.maintenance.message ?? DEFAULT_MAINTENANCE_MESSAGE)
+            : failure(
+                "chat.mode_disabled",
+                `${ticket.mode === "video" ? "Video" : "Text"} chat is turned off right now.`,
+              ),
+        );
         return;
       }
       if (!(await this.withinLimits("match", identity, this.options.rateLimits.matchesPerMinute, 60_000))) {
