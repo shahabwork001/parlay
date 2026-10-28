@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Redis } from "ioredis";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { inject } from "vitest";
-import type { MatchTicket } from "../../src/application/features/chat/chat-types.js";
+import type { MatchTicket, Participant } from "../../src/application/features/chat/chat-types.js";
 import { RedisMatchmaker } from "../../src/infrastructure/matchmaking/redis-matchmaker.js";
 
 const policy = {
@@ -10,12 +10,21 @@ const policy = {
   recentPartnerWindowMs: 60_000,
   scanLimit: 200,
   sessionTtlSeconds: 3600,
+  reportWindowSeconds: 600,
 };
 
-const ticket = (subjectId: string, overrides: Partial<MatchTicket> = {}): MatchTicket => ({
+const participant = (subjectId: string, deviceId = `device-${subjectId}`): Participant => ({
   subjectId,
-  deviceId: `device-${subjectId}`,
+  deviceId,
+  kind: "anonymous",
+  networkHash: `net-${subjectId}`,
+  subnetHash: "subnet-shared",
+});
+
+const ticket = (subjectId: string, overrides: Partial<MatchTicket> = {}): MatchTicket => ({
+  ...participant(subjectId, overrides.deviceId),
   mode: "text",
+  pool: "standard",
   language: "any",
   interests: [],
   ...overrides,
@@ -25,6 +34,7 @@ describe("RedisMatchmaker", () => {
   let redis: Redis;
   let now: number;
   let matchmaker: RedisMatchmaker;
+  let prefix: string;
 
   beforeAll(() => {
     redis = new Redis(inject("redisUrl"));
@@ -36,7 +46,8 @@ describe("RedisMatchmaker", () => {
 
   beforeEach(() => {
     now = 1_000_000;
-    matchmaker = new RedisMatchmaker(redis, policy, `mm-test-${randomUUID()}`, () => now);
+    prefix = `mm-test-${randomUUID()}`;
+    matchmaker = new RedisMatchmaker(redis, policy, prefix, () => now);
   });
 
   it("queues the first participant and pairs the second, waiter as caller", async () => {
@@ -46,8 +57,9 @@ describe("RedisMatchmaker", () => {
 
     expect(result.status).toBe("matched");
     if (result.status !== "matched") return;
-    expect(result.session.caller).toEqual({ subjectId: "a", deviceId: "device-a" });
-    expect(result.session.callee).toEqual({ subjectId: "b", deviceId: "device-b" });
+    expect(result.session.caller).toEqual(participant("a"));
+    expect(result.session.callee).toEqual(participant("b"));
+    expect(result.session.startedAt).toEqual(new Date(now));
     expect((await matchmaker.activeSession("a"))?.sessionId).toBe(result.session.sessionId);
     expect((await matchmaker.activeSession("b"))?.sessionId).toBe(result.session.sessionId);
   });
@@ -55,6 +67,29 @@ describe("RedisMatchmaker", () => {
   it("keeps text and video queues separate", async () => {
     await matchmaker.join(ticket("a", { mode: "video" }), { fresh: true });
     expect((await matchmaker.join(ticket("b", { mode: "text" }), { fresh: true })).status).toBe("queued");
+  });
+
+  it("keeps matchmaking pools separate (low trust and shadow bans)", async () => {
+    await matchmaker.join(ticket("shadowed", { pool: "shadow" }), { fresh: true });
+    await matchmaker.join(ticket("distrusted", { pool: "low-trust" }), { fresh: true });
+    expect((await matchmaker.join(ticket("regular"), { fresh: true })).status).toBe("queued");
+
+    const shadowPair = await matchmaker.join(ticket("also-shadowed", { pool: "shadow" }), { fresh: true });
+    expect(shadowPair.status === "matched" && shadowPair.session.caller.subjectId).toBe("shadowed");
+  });
+
+  it("keeps an ended session findable for the report window", async () => {
+    await matchmaker.join(ticket("a"), { fresh: true });
+    const result = await matchmaker.join(ticket("b"), { fresh: true });
+    if (result.status !== "matched") throw new Error("expected a match");
+
+    await matchmaker.endSession("a");
+
+    expect(await matchmaker.activeSession("a")).toBeNull();
+    const ended = await matchmaker.findSession(result.session.sessionId);
+    expect(ended?.caller).toEqual(participant("a"));
+    expect(ended?.callee.networkHash).toBe("net-b");
+    expect(await redis.ttl(`${prefix}:ended:${result.session.sessionId}`)).toBeGreaterThan(590);
   });
 
   it("reports an existing session instead of matching again", async () => {
@@ -111,10 +146,7 @@ describe("RedisMatchmaker", () => {
   });
 
   it("never matches blocked subjects or devices, in either direction", async () => {
-    await matchmaker.block(
-      { subjectId: "a", deviceId: "device-a" },
-      { subjectId: "b", deviceId: "device-b" },
-    );
+    await matchmaker.block(participant("a"), participant("b"));
 
     await matchmaker.join(ticket("b"), { fresh: true });
     expect((await matchmaker.join(ticket("a"), { fresh: true })).status).toBe("queued");

@@ -1,6 +1,6 @@
 # Feature: No chat recording
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ The platform never stores video or full chat logs; only report snapshots and the
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+`RecentMessages` (`RedisRecentMessages`)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+Redis list `chat:recent:{sessionId}`: last 20 filtered messages, expires 15 minutes after the last message. Never written to durable storage unless reported (10 messages copied into evidence).
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: video and audio never touch the servers; text is relayed and only buffered briefly for reports.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

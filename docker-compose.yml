@@ -12,6 +12,8 @@ x-backend-environment: &backend-environment
   REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
   RABBITMQ_URL: amqp://${RABBITMQ_USERNAME:?}:${RABBITMQ_PASSWORD:?}@rabbitmq:5672
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  EVIDENCE_RETENTION_DAYS: ${EVIDENCE_RETENTION_DAYS:-30}
+  MINOR_SAFETY_RETENTION_DAYS: ${MINOR_SAFETY_RETENTION_DAYS:-365}
 
 x-backend-dependencies: &backend-dependencies
   mongodb:

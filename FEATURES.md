@@ -19,17 +19,17 @@ Status values: Not started, In progress, Done, Blocked.
 | Block and skip history               | Done        | FE + BE | 3     | [docs/features/block-history.md](docs/features/block-history.md)                   |
 | Video chat                           | Done        | FE + BE | 4     | [docs/features/video-chat.md](docs/features/video-chat.md)                         |
 | WebRTC signaling and TURN            | Done        | FE + BE | 4     | [docs/features/webrtc-signaling.md](docs/features/webrtc-signaling.md)             |
-| In-chat reporting                    | Not started | FE + BE | 5     | [docs/features/reporting.md](docs/features/reporting.md)                           |
-| Client-side NSFW screening           | Not started | FE + BE | 5     | [docs/features/client-nsfw-screening.md](docs/features/client-nsfw-screening.md)   |
-| Server-side moderation pipeline      | Not started | BE      | 5     | [docs/features/moderation-pipeline.md](docs/features/moderation-pipeline.md)       |
-| Text moderation                      | Not started | FE + BE | 5     | [docs/features/text-moderation.md](docs/features/text-moderation.md)               |
-| Rate limiting                        | In progress | BE      | 5     | [docs/features/rate-limiting.md](docs/features/rate-limiting.md)                   |
-| Ban system                           | Not started | FE + BE | 5     | [docs/features/ban-system.md](docs/features/ban-system.md)                         |
-| Trust score                          | Not started | BE      | 5     | [docs/features/trust-score.md](docs/features/trust-score.md)                       |
-| Minor safety escalation              | Not started | FE + BE | 5     | [docs/features/minor-safety.md](docs/features/minor-safety.md)                     |
-| Evidence retention                   | Not started | BE      | 5     | [docs/features/evidence-retention.md](docs/features/evidence-retention.md)         |
-| No chat recording                    | Not started | FE + BE | 5     | [docs/features/no-chat-recording.md](docs/features/no-chat-recording.md)           |
-| Ban and appeal experience            | Not started | FE + BE | 5     | [docs/features/ban-appeal.md](docs/features/ban-appeal.md)                         |
+| In-chat reporting                    | Done        | FE + BE | 5     | [docs/features/reporting.md](docs/features/reporting.md)                           |
+| Client-side NSFW screening           | Done        | FE + BE | 5     | [docs/features/client-nsfw-screening.md](docs/features/client-nsfw-screening.md)   |
+| Server-side moderation pipeline      | Done        | BE      | 5     | [docs/features/moderation-pipeline.md](docs/features/moderation-pipeline.md)       |
+| Text moderation                      | Done        | FE + BE | 5     | [docs/features/text-moderation.md](docs/features/text-moderation.md)               |
+| Rate limiting                        | Done        | BE      | 5     | [docs/features/rate-limiting.md](docs/features/rate-limiting.md)                   |
+| Ban system                           | Done        | FE + BE | 5     | [docs/features/ban-system.md](docs/features/ban-system.md)                         |
+| Trust score                          | Done        | BE      | 5     | [docs/features/trust-score.md](docs/features/trust-score.md)                       |
+| Minor safety escalation              | Done        | FE + BE | 5     | [docs/features/minor-safety.md](docs/features/minor-safety.md)                     |
+| Evidence retention                   | Done        | BE      | 5     | [docs/features/evidence-retention.md](docs/features/evidence-retention.md)         |
+| No chat recording                    | Done        | FE + BE | 5     | [docs/features/no-chat-recording.md](docs/features/no-chat-recording.md)           |
+| Ban and appeal experience            | Done        | FE + BE | 5     | [docs/features/ban-appeal.md](docs/features/ban-appeal.md)                         |
 | Admin dashboard                      | Not started | FE + BE | 6     | [docs/features/admin-dashboard.md](docs/features/admin-dashboard.md)               |
 | Moderation queue                     | Not started | FE + BE | 6     | [docs/features/admin-moderation-queue.md](docs/features/admin-moderation-queue.md) |
 | Users and devices                    | Not started | FE + BE | 6     | [docs/features/admin-users.md](docs/features/admin-users.md)                       |

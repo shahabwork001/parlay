@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 5: moderation and safety)
+
+- Reports: `POST /api/v1/reports` with categories, snapshot and the last messages as evidence; ends the chat and blocks the partner; 10-minute report window after a chat ends.
+- Moderation worker: `ScoreReport` with a pluggable `ContentClassifier` (heuristic skin-tone and text-rule implementation), review priority and tiers, automatic suspension after reports from 3 people within an hour.
+- Bans by account, device, IP and subnet (keyed hashes), temporary, permanent or shadow; Redis write-through cache checked on connect and every search; enforcement via the Socket.IO Redis emitter; `GET /api/v1/me/ban` and `POST /api/v1/me/ban/appeal`.
+- Trust scores per account and device (clean sessions, reports, flags, blocked messages); low-trust and shadow matchmaking pools.
+- Text moderation rules stored in MongoDB: slurs rejected, profanity masked, links, emails, phone numbers and social handles removed, repeat-spam detection.
+- Rate limits per account, device and network for searches, messages and reports.
+- On-device screening flags (`moderation:flag`) with automatic 24-hour bans after 3 flags in 10 minutes.
+- Minor-safety workflow: critical priority, instant suspension, 365-day evidence preservation, restricted and audit-logged evidence access; documented in `docs/minor-safety-workflow.md`.
+- Evidence store with TTL retention, audit log collection, `GET /api/v1/moderation/reports/{id}/evidence`.
+- ADRs 0010 (written down), 0012 and 0013.
+- 29 new unit tests and 13 new integration tests (174 unit and 61 integration in total).
+
+### Changed
+
+- Matchmaking participants carry kind and network hashes; queues are keyed by pool; ended sessions are kept for the report window.
+- The Phase 3 `filterChatText` is replaced by `moderateText` with stored rules.
+
+### Fixed
+
+- ADR index listed ADR 0011 twice and linked ADR 0010, which had not been written.
+
 ### Added (Phase 4: video chat)
 
 - `GET /api/v1/rtc/ice-servers`: STUN plus short-lived TURN credentials in coturn's REST scheme (HMAC-SHA1 over `expiry:subject`).

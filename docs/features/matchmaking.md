@@ -32,9 +32,10 @@ Redis (prefix `mm`): `queue:{mode}` (ZSET by enqueue time), `ticket:{subject}` (
 
 ## Current state (what works, what's missing, known issues)
 
-Done: pairing is one atomic Lua script (no double matches; verified with 200 concurrent joins). Waiting participants retry every 2 s so the interest fallback applies; the longer-waiting participant becomes the caller. Separate text and video queues. A participant is in at most one session. Shadow-ban and low-trust pools arrive in Phase 5. Scale note: each attempt scans up to 200 waiting tickets.
+Done: atomic Redis Lua pairing in separate queues per mode and pool (standard, low-trust, shadow); shared-interest preference with random fallback; language filter; blocks in both directions (subject and device); no immediate re-match; ended sessions kept for the 10-minute report window; presence sweeping. Pool chosen per search from bans and trust (Phase 5).
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
-- 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).
+- 2026-10-25: Implemented in Phase 3.
+- 2026-10-28: Matchmaking pools and report window (Phase 5).

@@ -1,6 +1,6 @@
 # Feature: Minor safety escalation
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Reports of apparent minors or child sexual content get top priority, instant sus
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+Categories `appears-minor`, `child-sexual-content`; `docs/minor-safety-workflow.md`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+`reports.escalation` (required | reported | not-required); suspension ban with reason pending-review; evidence retention 365 days.
 
 ## Business rules
 
@@ -27,8 +27,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: priority 100 (critical), instant suspension of account and device pending review, evidence preserved for a year, evidence restricted to `moderation.escalate` and audit-logged. The escalation step (recording an NCMEC CyberTipline or hotline report) is documented in docs/minor-safety-workflow.md; its admin screen arrives in Phase 6.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

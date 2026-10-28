@@ -1,6 +1,6 @@
 # Feature: Ban and appeal experience
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Banned users see the reason and duration and can submit an appeal.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+GET /api/v1/me/ban -> {ban | null}; POST /api/v1/me/ban/appeal {message 20..2000} -> 201 {ban}; `GetMyBan`, `SubmitAppeal`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+`bans.appeal`: message, submittedAt, status (pending | accepted | rejected), decidedAt.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: the most severe full ban for the account, device or network is shown (shadow bans never are). One appeal per ban. Reviewing appeals arrives in Phase 6.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

@@ -15,6 +15,7 @@ export function testInfrastructureConfig(
     mongo: { uri: inject("mongoUri"), database: `parley_test_${randomUUID().replaceAll("-", "")}` },
     redis: { url: inject("redisUrl") },
     rabbitMq: { url: inject("rabbitMqUrl"), prefetch: 8, deliveryLimit: 3, retryDelayMs: 10, ...overrides },
+    moderation: { evidenceRetentionDays: 30, minorSafetyRetentionDays: 365 },
   };
 }
 

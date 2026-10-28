@@ -15,6 +15,9 @@ export interface Matchmaker {
 
   activeSession(subjectId: string): Promise<ChatSession | null>;
 
+  /** A live session, or one that ended within the report window. */
+  findSession(sessionId: string): Promise<ChatSession | null>;
+
   /** Ends the participant's session (if any) for both sides and returns it. */
   endSession(subjectId: string): Promise<ChatSession | null>;
 

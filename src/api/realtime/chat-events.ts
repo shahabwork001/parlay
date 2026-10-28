@@ -1,6 +1,7 @@
 import type { ChatMode, EndReason } from "../../application/features/chat/chat-types.js";
 import type { MediaState, RtcSignal } from "../../application/features/chat/schemas.js";
 import type { Principal } from "../../application/features/identity/ports.js";
+import type { AccessIdentity } from "../../application/features/moderation/network.js";
 
 /**
  * Socket.IO contract shared with the frontend (`src/services/realtime/chat-events.ts` there).
@@ -18,6 +19,8 @@ export interface MatchFoundPayload {
   /** The caller waited longer and starts the WebRTC negotiation in video mode. */
   readonly role: "caller" | "callee";
   readonly sharedInterests: readonly string[];
+  /** On-device screening settings for this session (stricter for low-trust pools). */
+  readonly safety: { readonly nsfwThreshold: number };
 }
 
 export interface ChatMessagePayload {
@@ -33,6 +36,8 @@ export interface ServerToClientEvents {
   "chat:typing": (payload: { readonly typing: boolean }) => void;
   "rtc:signal": (payload: RtcSignal) => void;
   "media:state": (payload: MediaState) => void;
+  /** Sent right before the server disconnects a banned person. */
+  "moderation:banned": (payload: Record<string, never>) => void;
 }
 
 export interface ClientToServerEvents {
@@ -44,6 +49,7 @@ export interface ClientToServerEvents {
   "chat:typing": (payload: unknown) => void;
   "rtc:signal": (payload: unknown) => void;
   "media:state": (payload: unknown) => void;
+  "moderation:flag": (payload: unknown, ack: AckCallback<{ outcome: "recorded" | "banned" }>) => void;
 }
 
 /** No server-to-server events: cross-instance delivery goes through the Redis adapter. */
@@ -53,4 +59,5 @@ export interface InterServerEvents {
 
 export interface SocketData {
   principal: Principal;
+  identity: AccessIdentity;
 }

@@ -1,13 +1,24 @@
 import { v7 as uuidv7 } from "uuid";
 import type { EventPublisher } from "../../application/abstractions/messaging/integration-event.js";
+import type { RateLimiter } from "../../application/abstractions/rate-limiter.js";
 import { PartnerBlocked } from "../../application/features/chat/blocks.js";
 import {
   type ChatSession,
   type EndReason,
+  type MatchPool,
   type MatchTicket,
+  type Participant,
   partnerOf,
 } from "../../application/features/chat/chat-types.js";
 import type { Matchmaker } from "../../application/features/chat/matchmaker.js";
+import type { RecentMessages } from "../../application/features/chat/recent-messages.js";
+import {
+  BANNED_EVENT,
+  deviceRoom,
+  networkRoom,
+  subjectRoom,
+  subnetRoom,
+} from "../../application/features/chat/rooms.js";
 import {
   chatMessageSchema,
   joinQueueSchema,
@@ -15,15 +26,47 @@ import {
   rtcSignalSchema,
   typingSchema,
 } from "../../application/features/chat/schemas.js";
-import { filterChatText } from "../../application/features/chat/text-filter.js";
+import type { ChatSessionControl } from "../../application/features/chat/session-control.js";
+import type { BanService } from "../../application/features/moderation/bans.js";
+import type { RecordContentFlag } from "../../application/features/moderation/content-flags.js";
+import { ContentFlagged, SessionEnded } from "../../application/features/moderation/events.js";
+import type { ModerationPolicy } from "../../application/features/moderation/moderation-policy.js";
+import type { AccessIdentity } from "../../application/features/moderation/network.js";
+import type { TextRulesProvider, TrustStore } from "../../application/features/moderation/ports.js";
+import { contentFlagSchema } from "../../application/features/moderation/schemas.js";
+import { moderateText, RepeatGuard } from "../../application/features/moderation/text-moderation.js";
+import { trustKeys, trustTier } from "../../domain/moderation/trust.js";
 import type { Logger } from "../../infrastructure/observability/logger.js";
 import type { Ack, AckCallback } from "./chat-events.js";
 import type { ChatServer, ChatSocket } from "./socket-server.js";
 import { TokenBucket } from "./token-bucket.js";
 
+/** Per-person limits (each applies separately to the account, the device and the network address). */
+export interface ChatRateLimits {
+  /** Searches (join or next) per minute. */
+  readonly matchesPerMinute: number;
+  /** Messages per second; the network limit is this times `networkFactor` (shared connections). */
+  readonly messagesPerSecond: number;
+  readonly networkFactor: number;
+}
+
+export const DEFAULT_CHAT_RATE_LIMITS: ChatRateLimits = {
+  matchesPerMinute: 30,
+  messagesPerSecond: 5,
+  networkFactor: 4,
+};
+
 export interface ChatGatewayOptions {
   readonly matchmaker: Matchmaker;
   readonly events: EventPublisher;
+  readonly rateLimiter: RateLimiter;
+  readonly rateLimits: ChatRateLimits;
+  readonly bans: BanService;
+  readonly trust: TrustStore;
+  readonly textRules: TextRulesProvider;
+  readonly recentMessages: RecentMessages;
+  readonly recordContentFlag: RecordContentFlag;
+  readonly policy: ModerationPolicy;
   readonly logger: Logger;
   /** How often a waiting participant retries pairing (picks up the interest fallback). */
   readonly retryIntervalMs: number;
@@ -37,9 +80,14 @@ const failure = (code: string, message: string): Ack<never> => ({ ok: false, err
 const INVALID = failure("validation", "The request is invalid.");
 const NOT_IN_CHAT = failure("chat.no_partner", "You are not connected to anyone.");
 const SLOW_DOWN = failure("rate_limited", "You are sending messages too quickly.");
+const SEARCHING_TOO_FAST = failure("rate_limited", "You are skipping very quickly. Wait a moment.");
+const MESSAGE_BLOCKED = failure(
+  "chat.message_blocked",
+  "That message breaks the Community Guidelines and was not sent.",
+);
+const SPAM = failure("chat.spam", "You already sent that a few times.");
+const BANNED = failure("moderation.banned", "Your access to chat is suspended.");
 const INTERNAL = failure("internal", "Something went wrong. Try again.");
-
-const room = (subjectId: string) => `subject:${subjectId}`;
 
 const respond = <T>(ack: unknown, result: Ack<T>) => {
   if (typeof ack === "function") (ack as AckCallback<T>)(result);
@@ -48,16 +96,23 @@ const respond = <T>(ack: unknown, result: Ack<T>) => {
 interface Connection {
   ticket: MatchTicket | null;
   retryTimer: NodeJS.Timeout | null;
-  readonly messages: TokenBucket;
   readonly typing: TokenBucket;
   readonly signals: TokenBucket;
+  readonly flags: TokenBucket;
+  readonly repeats: RepeatGuard;
 }
+
+const toIdentity = (participant: Participant) => ({
+  subjectId: participant.subjectId,
+  deviceId: participant.deviceId,
+  kind: participant.kind,
+});
 
 /**
  * Real-time chat: matchmaking, relaying messages and typing, and ending sessions. Holds no shared
- * state beyond Redis; per-connection state (retry timer, flood buckets) lives with the socket.
+ * state beyond Redis; per-connection state (retry timer, flood buckets, spam guard) lives with the socket.
  */
-export class ChatGateway {
+export class ChatGateway implements ChatSessionControl {
   readonly #connections = new Map<string, Connection>();
   readonly #onlineSubjects = new Map<string, number>();
   #presenceTimer: NodeJS.Timeout | null = null;
@@ -83,26 +138,56 @@ export class ChatGateway {
     for (const connection of this.#connections.values()) this.stopRetry(connection);
   }
 
-  /** Tells the remaining participant of sessions ended elsewhere (e.g. by the presence sweeper). */
+  /**
+   * Tells the remaining participant of sessions ended anywhere (here, by the presence sweeper, or by a
+   * report) and publishes the end for trust scoring.
+   */
   notifyEnded(session: ChatSession, reason: EndReason, endedBySubjectId?: string): void {
     for (const participant of [session.caller, session.callee]) {
       if (participant.subjectId === endedBySubjectId) continue;
-      this.io.to(room(participant.subjectId)).emit("match:ended", { sessionId: session.sessionId, reason });
+      this.io
+        .to(subjectRoom(participant.subjectId))
+        .emit("match:ended", { sessionId: session.sessionId, reason });
     }
+    this.options.events
+      .publish(SessionEnded, {
+        sessionId: session.sessionId,
+        mode: session.mode,
+        startedAt: session.startedAt.toISOString(),
+        endedAt: new Date().toISOString(),
+        participants: [toIdentity(session.caller), toIdentity(session.callee)],
+      })
+      .catch((error: unknown) => {
+        this.options.logger.error({ err: error }, "Publishing SessionEnded failed");
+      });
+  }
+
+  async endIfActive(subjectId: string, sessionId: string): Promise<void> {
+    const active = await this.options.matchmaker.activeSession(subjectId);
+    if (active?.sessionId !== sessionId) return;
+    const session = await this.options.matchmaker.endSession(subjectId);
+    if (session) this.notifyEnded(session, "left", subjectId);
   }
 
   private connect(socket: ChatSocket): void {
-    const { subjectId } = socket.data.principal;
+    const { identity } = socket.data;
+    const { subjectId } = identity;
     const connection: Connection = {
       ticket: null,
       retryTimer: null,
-      messages: new TokenBucket(10, 3),
       typing: new TokenBucket(5, 2),
       signals: new TokenBucket(60, 20),
+      flags: new TokenBucket(3, 0.1),
+      repeats: new RepeatGuard(),
     };
     this.#connections.set(socket.id, connection);
     this.#onlineSubjects.set(subjectId, (this.#onlineSubjects.get(subjectId) ?? 0) + 1);
-    void socket.join(room(subjectId));
+    void socket.join([
+      subjectRoom(subjectId),
+      deviceRoom(identity.deviceId),
+      networkRoom(identity.networkHash),
+      subnetRoom(identity.subnetHash),
+    ]);
     void this.options.matchmaker.touchPresence([subjectId]);
 
     const guard =
@@ -114,6 +199,27 @@ export class ChatGateway {
         });
       };
 
+    /** Starts a new search, re-checking bans and trust so changes apply from the next search. */
+    const startSearch = async (ack: unknown, ticket: Omit<MatchTicket, "pool"> | null) => {
+      if (!ticket) {
+        respond(ack, INVALID);
+        return;
+      }
+      if (!(await this.withinLimits("match", identity, this.options.rateLimits.matchesPerMinute, 60_000))) {
+        respond(ack, SEARCHING_TOO_FAST);
+        return;
+      }
+      const pool = await this.poolFor(identity);
+      if (pool === "banned") {
+        respond(ack, BANNED);
+        socket.emit(BANNED_EVENT, {});
+        socket.disconnect(true);
+        return;
+      }
+      connection.ticket = { ...ticket, pool };
+      respond(ack, ok({ status: await this.search(connection, true) }));
+    };
+
     socket.on(
       "queue:join",
       guard("queue:join", async (payload: unknown, ack: unknown) => {
@@ -123,8 +229,7 @@ export class ChatGateway {
           return;
         }
         await this.endSession(socket, "left");
-        connection.ticket = { ...this.participant(socket), ...parsed.data };
-        respond(ack, ok({ status: await this.search(connection, true) }));
+        await startSearch(ack, { ...this.participant(socket), ...parsed.data });
       }),
     );
 
@@ -132,11 +237,7 @@ export class ChatGateway {
       "match:next",
       guard("match:next", async (ack: unknown) => {
         await this.endSession(socket, "skipped");
-        if (!connection.ticket) {
-          respond(ack, INVALID);
-          return;
-        }
-        respond(ack, ok({ status: await this.search(connection, true) }));
+        await startSearch(ack, connection.ticket);
       }),
     );
 
@@ -185,24 +286,44 @@ export class ChatGateway {
           respond(ack, INVALID);
           return;
         }
-        if (!connection.messages.tryTake()) {
+        if (
+          !(await this.withinLimits("message", identity, this.options.rateLimits.messagesPerSecond, 1000))
+        ) {
           respond(ack, SLOW_DOWN);
           return;
         }
 
-        const filtered = filterChatText(parsed.data.text);
-        if (!filtered.text) {
+        const rules = await this.options.textRules.current();
+        const strict = connection.ticket !== null && connection.ticket.pool !== "standard";
+        const moderated = moderateText(parsed.data.text, rules, { strict });
+        if (moderated.status === "empty") {
           respond(ack, INVALID);
           return;
         }
+        if (moderated.status === "blocked") {
+          this.publishBlockedMessage(identity);
+          respond(ack, MESSAGE_BLOCKED);
+          return;
+        }
+        if (connection.repeats.isSpam(moderated.text, Date.now(), rules)) {
+          respond(ack, SPAM);
+          return;
+        }
+
         const session = await this.options.matchmaker.activeSession(subjectId);
         if (!session) {
           respond(ack, NOT_IN_CHAT);
           return;
         }
 
-        const message = { id: uuidv7(), text: filtered.text, sentAt: new Date().toISOString() };
-        this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("chat:message", message);
+        const sentAt = new Date();
+        const message = { id: uuidv7(), text: moderated.text, sentAt: sentAt.toISOString() };
+        await this.options.recentMessages.append(session.sessionId, {
+          senderSubjectId: subjectId,
+          text: moderated.text,
+          sentAt,
+        });
+        this.io.to(subjectRoom(partnerOf(session, subjectId).subjectId)).emit("chat:message", message);
         respond(ack, ok(message));
       }),
     );
@@ -214,7 +335,7 @@ export class ChatGateway {
         if (!parsed.success || !connection.typing.tryTake()) return;
         const session = await this.options.matchmaker.activeSession(subjectId);
         if (session)
-          this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("chat:typing", parsed.data);
+          this.io.to(subjectRoom(partnerOf(session, subjectId).subjectId)).emit("chat:typing", parsed.data);
       }),
     );
 
@@ -225,7 +346,7 @@ export class ChatGateway {
         if (!parsed.success || !connection.signals.tryTake()) return;
         const session = await this.options.matchmaker.activeSession(subjectId);
         if (session?.mode !== "video") return;
-        this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("rtc:signal", parsed.data);
+        this.io.to(subjectRoom(partnerOf(session, subjectId).subjectId)).emit("rtc:signal", parsed.data);
       }),
     );
 
@@ -236,7 +357,24 @@ export class ChatGateway {
         if (!parsed.success || !connection.typing.tryTake()) return;
         const session = await this.options.matchmaker.activeSession(subjectId);
         if (session)
-          this.io.to(room(partnerOf(session, subjectId).subjectId)).emit("media:state", parsed.data);
+          this.io.to(subjectRoom(partnerOf(session, subjectId).subjectId)).emit("media:state", parsed.data);
+      }),
+    );
+
+    socket.on(
+      "moderation:flag",
+      guard("moderation:flag", async (payload: unknown, ack: unknown) => {
+        const parsed = contentFlagSchema.safeParse(payload);
+        if (!parsed.success) {
+          respond(ack, INVALID);
+          return;
+        }
+        if (!connection.flags.tryTake()) {
+          respond(ack, ok({ outcome: "recorded" as const }));
+          return;
+        }
+        const outcome = await this.options.recordContentFlag.execute(identity, parsed.data.score);
+        respond(ack, ok({ outcome }));
       }),
     );
 
@@ -258,6 +396,58 @@ export class ChatGateway {
     });
   }
 
+  /** Banned people cannot search; shadow-banned and low-trust people search in their own pools. */
+  private async poolFor(identity: AccessIdentity): Promise<MatchPool | "banned"> {
+    const access = await this.options.bans.checkAccess(identity);
+    if (access.status === "banned") return "banned";
+    if (access.status === "shadow") return "shadow";
+    const trust = await this.options.trust.scoreOf(trustKeys(identity));
+    return trustTier(trust) === "low" ? "low-trust" : "standard";
+  }
+
+  /**
+   * Sliding-window limits per account, device and network address. Fails open when Redis is
+   * unavailable: the per-connection buckets and moderation still apply.
+   */
+  private async withinLimits(
+    name: string,
+    identity: AccessIdentity,
+    limit: number,
+    windowMs: number,
+  ): Promise<boolean> {
+    const { rateLimiter, rateLimits } = this.options;
+    try {
+      const decisions = await Promise.all([
+        rateLimiter.consume(`chat.${name}:subject:${identity.subjectId}`, limit, windowMs),
+        rateLimiter.consume(`chat.${name}:device:${identity.deviceId}`, limit, windowMs),
+        rateLimiter.consume(
+          `chat.${name}:net:${identity.networkHash}`,
+          limit * rateLimits.networkFactor,
+          windowMs,
+        ),
+      ]);
+      return decisions.every((decision) => decision.allowed);
+    } catch (error) {
+      this.options.logger.warn({ err: error }, "Chat rate limiter unavailable; allowing");
+      return true;
+    }
+  }
+
+  private publishBlockedMessage(identity: AccessIdentity): void {
+    this.options.events
+      .publish(ContentFlagged, {
+        subjectId: identity.subjectId,
+        deviceId: identity.deviceId,
+        kind: identity.kind,
+        source: "blocked-message",
+        score: null,
+        flaggedAt: new Date().toISOString(),
+      })
+      .catch((error: unknown) => {
+        this.options.logger.error({ err: error }, "Publishing ContentFlagged failed");
+      });
+  }
+
   /** One pairing attempt; keeps retrying in the background while queued. */
   private async search(connection: Connection, fresh: boolean): Promise<"matched" | "queued"> {
     this.stopRetry(connection);
@@ -266,7 +456,7 @@ export class ChatGateway {
 
     const result = await this.options.matchmaker.join(ticket, { fresh });
     if (result.status === "matched") {
-      this.announce(result.session);
+      this.announce(result.session, ticket.pool);
       return "matched";
     }
     if (result.status === "queued") {
@@ -280,25 +470,35 @@ export class ChatGateway {
     return "matched";
   }
 
-  private announce(session: ChatSession): void {
+  /** Both participants come from the same pool, so the pool sets screening for both. */
+  private announce(session: ChatSession, pool: MatchPool): void {
+    const { nsfwThreshold } = this.options.policy;
     const base = {
       sessionId: session.sessionId,
       mode: session.mode,
       sharedInterests: session.sharedInterests,
+      safety: { nsfwThreshold: pool === "standard" ? nsfwThreshold.standard : nsfwThreshold.strict },
     };
-    this.io.to(room(session.caller.subjectId)).emit("match:found", { ...base, role: "caller" });
-    this.io.to(room(session.callee.subjectId)).emit("match:found", { ...base, role: "callee" });
+    this.io.to(subjectRoom(session.caller.subjectId)).emit("match:found", { ...base, role: "caller" });
+    this.io.to(subjectRoom(session.callee.subjectId)).emit("match:found", { ...base, role: "callee" });
   }
 
   private async endSession(socket: ChatSocket, reason: EndReason): Promise<ChatSession | null> {
-    const subjectId = socket.data.principal.subjectId;
+    const subjectId = socket.data.identity.subjectId;
     const session = await this.options.matchmaker.endSession(subjectId);
     if (session) this.notifyEnded(session, reason, subjectId);
     return session;
   }
 
-  private participant(socket: ChatSocket) {
-    return { subjectId: socket.data.principal.subjectId, deviceId: socket.data.principal.deviceId };
+  private participant(socket: ChatSocket): Participant {
+    const { identity } = socket.data;
+    return {
+      subjectId: identity.subjectId,
+      deviceId: identity.deviceId,
+      kind: identity.kind,
+      networkHash: identity.networkHash,
+      subnetHash: identity.subnetHash,
+    };
   }
 
   private stopRetry(connection: Connection): void {

@@ -35,6 +35,10 @@ Living document. Phase 8 performs the full review; every phase adds its mitigati
 
 - Users' IP addresses are never returned to other users or written to logs. Direct WebRTC connections can reveal a device's IP to the peer, so the relay-only setting routes all media through coturn instead.
 - TURN credentials are per participant and expire after one hour; the shared secret never leaves the server.
+- IP and subnet bans use keyed hashes (`HASH_SECRET`) of the address and its /24 or /64; raw addresses are never stored. Automatic bans never target networks.
+- Report evidence is restricted to staff with `reports.review` on a 2FA session (minor-safety evidence additionally `moderation.escalate`); every view is written to `audit_log` before the evidence is returned. Evidence expires by TTL index.
+- Snapshots are validated as JPEG (magic bytes) and capped at 96 000 characters of base64; JPEG decoding in the classifier is capped at one megapixel.
+- Chat text is moderated server-side (slurs rejected, contact details removed); the client never decides what is delivered.
 - Device fingerprints and client IPs are stored only as keyed hashes.
 - Video and full chat logs are never stored; only report evidence, with retention TTLs (Phase 5).
 - Logs must not contain secrets, emails, IPs, fingerprints or request headers (enforced by serializers and redaction; covered by a unit test).

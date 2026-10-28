@@ -1,6 +1,6 @@
 # Feature: Server-side moderation pipeline
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Reports and flagged frames are scored by a pluggable IContentClassifier in a wor
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 5).
+Consumers: moderation.scoring (`ScoreReport`), trust.sessions, trust.flags, audit.bans; `ContentClassifier` port with `HeuristicContentClassifier`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 5).
+Updates `reports.score`, `priority`, `tier`, `scoredAt`; `trust_scores`; `audit_log`.
 
 ## Business rules
 
@@ -26,8 +26,9 @@ To be defined when implementation starts (planned for Phase 5).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 5.
+Done: each report is classified (skin-tone ratio for the snapshot, text rules for the reported person's messages), prioritised (category base + classifier x 20 + low trust + recent reports, low-trust reporters weigh less; minor safety always 100) and scored once (idempotent). Reports from 3 different people within an hour suspend the person for 24 hours. The heuristic classifier only orders the queue; swap in a model behind the port (ADR 0012).
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 5 (moderation and safety).

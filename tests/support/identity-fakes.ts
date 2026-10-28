@@ -28,7 +28,7 @@ import type { User } from "../../src/domain/identity/user.js";
 import { JwtAccessTokenService } from "../../src/infrastructure/identity/jwt-access-tokens.js";
 
 /** In-memory repository with the same optimistic-concurrency semantics as the Mongo one. */
-class InMemoryRepository<T extends AggregateRoot> {
+export class InMemoryRepository<T extends AggregateRoot> {
   protected readonly items = new Map<string, { version: number; value: T }>();
 
   getById(id: string): Promise<T | null> {

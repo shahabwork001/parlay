@@ -39,6 +39,8 @@ const infrastructureSchema = z.object({
   RABBITMQ_PREFETCH: z.coerce.number().int().min(1).max(1000).default(16),
   RABBITMQ_DELIVERY_LIMIT: z.coerce.number().int().min(1).max(100).default(5),
   RABBITMQ_RETRY_DELAY_MS: z.coerce.number().int().min(0).max(60_000).default(1000),
+  EVIDENCE_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  MINOR_SAFETY_RETENTION_DAYS: z.coerce.number().int().min(365).max(3650).default(365),
 });
 
 const apiSchema = infrastructureSchema.extend({
@@ -86,6 +88,11 @@ export interface InfrastructureConfig {
     readonly prefetch: number;
     readonly deliveryLimit: number;
     readonly retryDelayMs: number;
+  };
+  readonly moderation: {
+    readonly evidenceRetentionDays: number;
+    /** At least a year: preservation duty for reports to child-safety authorities. */
+    readonly minorSafetyRetentionDays: number;
   };
 }
 
@@ -156,6 +163,10 @@ function toInfrastructure(values: z.infer<typeof infrastructureSchema>): Infrast
       prefetch: values.RABBITMQ_PREFETCH,
       deliveryLimit: values.RABBITMQ_DELIVERY_LIMIT,
       retryDelayMs: values.RABBITMQ_RETRY_DELAY_MS,
+    },
+    moderation: {
+      evidenceRetentionDays: values.EVIDENCE_RETENTION_DAYS,
+      minorSafetyRetentionDays: values.MINOR_SAFETY_RETENTION_DAYS,
     },
   };
 }

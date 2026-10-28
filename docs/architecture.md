@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-4 implemented (foundation, identity, matchmaking, text and video chat). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
+Status: Phases 1-5 implemented (foundation, identity, matchmaking, text and video chat, moderation and safety). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
 
@@ -149,21 +149,37 @@ sequenceDiagram
 - **Recovery**: ICE restart after 3 s in `disconnected` or immediately on `failed`; perfect negotiation makes restarts safe from either side.
 - **Media never reaches the API**: only SDP and candidates pass through the gateway.
 
-## Moderation pipeline (planned, Phase 5)
+## Moderation pipeline (implemented in Phase 5)
 
 ```mermaid
 flowchart LR
-  R[Report / NSFW flag] --> API
-  API -->|reports.created.v1| MQ[[RabbitMQ]]
-  MQ --> W[Moderation worker]
-  W --> C[ContentClassifier port]
-  W -->|priority score| Q[(Review queue in Mongo)]
-  W -->|minor-safety| S[Instant suspension + evidence hold]
-  Q --> M[Moderator UI]
-  M -->|decision| API
-  API -->|moderation.decided.v1| MQ
-  MQ --> AUD[Audit log consumer]
+  subgraph Browser
+    S[NSFWJS worker] -->|flag| GW
+    U[Report dialog] -->|POST /reports| API
+  end
+  GW[Chat gateway] -->|text rules, rate limits| GW
+  GW -->|content-flagged| MQ[[RabbitMQ]]
+  GW -->|session-ended| MQ
+  API[Reports API] -->|end chat, block, evidence| DB[(MongoDB)]
+  API -->|minor safety: suspend| BAN[BanService]
+  GW -->|3 flags in 10 min| BAN
+  BAN -->|write-through| R[(Redis ban cache)]
+  BAN -->|moderation:banned + disconnect| EM[Socket.IO Redis emitter]
+  API -->|report-submitted| MQ
+  MQ --> SC[ScoreReport]
+  SC --> C[ContentClassifier port]
+  SC -->|priority, trust -3| DB
+  SC -->|3 reporters in 1 h| BAN
+  MQ --> T[Trust consumers]
+  MQ --> AU[Audit consumer]
+  BAN -->|ban-issued| MQ
 ```
+
+- **Immediate safety on the request path**, ranking and learning in the workers ([ADR 0012](decisions/0012-moderation-pipeline.md)).
+- **Bans** live in MongoDB with a Redis write-through cache checked at connect and on every search; enforcement reaches every API instance through the Socket.IO Redis emitter. Every socket joins `subject:`, `device:`, `net:` and `subnet:` rooms ([ADR 0013](decisions/0013-bans-trust-and-pools.md)).
+- **Pools**: matchmaking queues are keyed `mm:queue:{mode}:{pool}` with pools `standard`, `low-trust` (trust below 25) and `shadow` (shadow-banned).
+- **Evidence** is the report snapshot plus the last 10 messages from a 15-minute Redis buffer (`chat:recent:{session}`); it expires through a TTL index (30 days, 365 for minor safety). Staff access is audit-logged.
+- **Minor safety**: see [minor-safety-workflow.md](minor-safety-workflow.md).
 
 ## Health
 

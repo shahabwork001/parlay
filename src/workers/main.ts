@@ -4,6 +4,7 @@ import { loadWorkersConfig } from "../infrastructure/config/config.js";
 import { SmtpEmailSender } from "../infrastructure/email/smtp-email-sender.js";
 import { createHealthRouter } from "../infrastructure/health/health-router.js";
 import { createInfrastructure } from "../infrastructure/infrastructure.js";
+import { createModerationContext } from "../infrastructure/moderation/moderation-composition.js";
 import { createLogger } from "../infrastructure/observability/logger.js";
 import { onShutdown } from "../infrastructure/process/shutdown.js";
 import { createConsumers } from "./consumers.js";
@@ -20,7 +21,8 @@ const infrastructure = await createInfrastructure(config, logger, SERVICE_NAME);
 
 const emailSender = new SmtpEmailSender(config.smtp);
 
-const consumers = createConsumers({ infrastructure, config, logger, emailSender });
+const moderation = createModerationContext(infrastructure, config);
+const consumers = createConsumers({ infrastructure, moderation, config, logger, emailSender });
 await Promise.all(consumers.map((consumer) => consumer.start()));
 
 const app = express();

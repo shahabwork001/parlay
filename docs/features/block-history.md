@@ -32,3 +32,4 @@ Done: blocking ends the chat (the partner sees an ordinary 'left'), and the bloc
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
 - 2026-10-25: Implemented in Phase 3 (matchmaking and text chat).
+- 2026-10-28: Reports block the partner too (Phase 5).

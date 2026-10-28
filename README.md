@@ -89,26 +89,26 @@ Compose-level variables (`.env`, see `.env.example`):
 
 Application variables (validated at startup by `src/infrastructure/config/config.ts`):
 
-| Variable                                                                            | Default                            | Used by       | Purpose                                                       |
-| ----------------------------------------------------------------------------------- | ---------------------------------- | ------------- | ------------------------------------------------------------- |
-| `PORT`                                                                              | 8080 / 8081                        | api / workers | HTTP port                                                     |
-| `MONGO_URI`, `MONGO_DATABASE`                                                       | required / `parley`                | both          | MongoDB connection                                            |
-| `REDIS_URL`                                                                         | required                           | both          | Redis connection (`redis://:password@host:port`)              |
-| `RABBITMQ_URL`                                                                      | required                           | both          | Broker connection (`amqp://user:pass@host:port`)              |
-| `RABBITMQ_PREFETCH`                                                                 | 16                                 | workers       | Unacknowledged messages per consumer                          |
-| `RABBITMQ_DELIVERY_LIMIT`                                                           | 5                                  | workers       | Handler attempts before dead-lettering                        |
-| `RABBITMQ_RETRY_DELAY_MS`                                                           | 1000                               | workers       | Base retry backoff (doubles per attempt, max 30 s)            |
-| `CORS_ALLOWED_ORIGINS`                                                              | required                           | api           | Comma-separated exact origins                                 |
-| `FRONTEND_URL`                                                                      | `http://localhost:3000`            | api           | Base URL for links in emails                                  |
-| `TRUST_PROXY`                                                                       | `loopback`                         | api           | Express trust proxy, so rate limits see the real client IP    |
-| `JWT_SECRET`, `HASH_SECRET`, `TOTP_ENCRYPTION_KEY`                                  | required                           | api           | Identity secrets                                              |
-| `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_DAYS`                                | 900 / 30                           | api           | Token lifetimes                                               |
-| `MATCH_INTEREST_FALLBACK_MS`                                                        | 5000                               | api           | Wait before someone with interests may be matched with anyone |
-| `TURN_SECRET`, `TURN_URLS`, `STUN_URLS`, `TURN_CREDENTIAL_TTL_SECONDS`              | required / required / empty / 3600 | api           | TURN credential issuing                                       |
-| `TERMS_VERSION`, `COOKIE_SECURE`, `RATE_LIMIT_MULTIPLIER`                           | `2026-10-25` / true / 1            | api           | See above                                                     |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | `SMTP_HOST` required               | workers       | Email delivery                                                |
-| `SEED_ADMIN_EMAIL`, `SEED_PRINT_CREDENTIALS`                                        | `admin@parley.local` / false       | seed          | First SuperAdmin                                              |
-| `OTEL_SERVICE_NAME`                                                                 | set in Dockerfile                  | both          | Telemetry service name                                        |
+| Variable                                                                            | Default                                                  | Used by                | Purpose                                                       |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------- |
+| `PORT`                                                                              | 8080 / 8081                                              | api / workers          | HTTP port                                                     |
+| `MONGO_URI`, `MONGO_DATABASE`                                                       | required / `parley`                                      | both                   | MongoDB connection                                            |
+| `REDIS_URL`                                                                         | required                                                 | both                   | Redis connection (`redis://:password@host:port`)              |
+| `RABBITMQ_URL`                                                                      | required                                                 | both                   | Broker connection (`amqp://user:pass@host:port`)              |
+| `RABBITMQ_PREFETCH`                                                                 | 16                                                       | workers                | Unacknowledged messages per consumer                          |
+| `RABBITMQ_DELIVERY_LIMIT`                                                           | 5                                                        | workers                | Handler attempts before dead-lettering                        |
+| `RABBITMQ_RETRY_DELAY_MS`                                                           | 1000                                                     | workers                | Base retry backoff (doubles per attempt, max 30 s)            |
+| `CORS_ALLOWED_ORIGINS`                                                              | required                                                 | api                    | Comma-separated exact origins                                 |
+| `FRONTEND_URL`                                                                      | `http://localhost:3000`                                  | api                    | Base URL for links in emails                                  |
+| `TRUST_PROXY`                                                                       | `loopback`                                               | api                    | Express trust proxy, so rate limits see the real client IP    |
+| `JWT_SECRET`, `HASH_SECRET`, `TOTP_ENCRYPTION_KEY`                                  | required                                                 | api                    | Identity secrets                                              |
+| `ACCESS_TOKEN_TTL_SECONDS`, `REFRESH_TOKEN_TTL_DAYS`                                | 900 / 30                                                 | api                    | Token lifetimes                                               |
+| `MATCH_INTEREST_FALLBACK_MS`                                                        | 5000                                                     | api                    | Wait before someone with interests may be matched with anyone |
+| $1                                                                                  | `EVIDENCE_RETENTION_DAYS`, `MINOR_SAFETY_RETENTION_DAYS` | 30 / 365 (minimum 365) | both                                                          | Report evidence retention |
+| `TERMS_VERSION`, `COOKIE_SECURE`, `RATE_LIMIT_MULTIPLIER`                           | `2026-10-25` / true / 1                                  | api                    | See above                                                     |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | `SMTP_HOST` required                                     | workers                | Email delivery                                                |
+| `SEED_ADMIN_EMAIL`, `SEED_PRINT_CREDENTIALS`                                        | `admin@parley.local` / false                             | seed                   | First SuperAdmin                                              |
+| `OTEL_SERVICE_NAME`                                                                 | set in Dockerfile                                        | both                   | Telemetry service name                                        |
 
 ## Scripts
 

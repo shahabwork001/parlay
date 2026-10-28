@@ -13,6 +13,11 @@ import { BLOCK_INDEXES } from "./persistence/mongo/block-repository.js";
 import { DEVICE_INDEXES } from "./persistence/mongo/device-repository.js";
 import { applyMongoIndexes, type MongoIndexDefinition } from "./persistence/mongo/mongo-indexes.js";
 import { USER_INDEXES } from "./persistence/mongo/user-repository.js";
+import { AUDIT_INDEXES } from "./moderation/mongo-audit-log.js";
+import { BAN_INDEXES } from "./moderation/mongo-ban-repository.js";
+import { EVIDENCE_INDEXES } from "./moderation/mongo-evidence-store.js";
+import { REPORT_INDEXES } from "./moderation/mongo-report-repository.js";
+import { TRUST_INDEXES } from "./moderation/trust-store.js";
 
 /** Every collection's indexes. Features add their definitions here. */
 const MONGO_INDEXES: readonly MongoIndexDefinition[] = [
@@ -20,6 +25,11 @@ const MONGO_INDEXES: readonly MongoIndexDefinition[] = [
   DEVICE_INDEXES,
   BLOCK_INDEXES,
   ...TOKEN_INDEXES,
+  REPORT_INDEXES,
+  BAN_INDEXES,
+  EVIDENCE_INDEXES,
+  AUDIT_INDEXES,
+  TRUST_INDEXES,
 ];
 
 /** Composition root for infrastructure shared by the API and the workers. */
