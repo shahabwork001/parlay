@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/shared/kbd";
@@ -8,6 +7,7 @@ import { ReportDialog } from "@/features/moderation/components/report-dialog";
 import type { ChatMode } from "@/lib/constants";
 import { useChat } from "../hooks/use-chat";
 import { type ChatPhase, useChatStore } from "../store/chat-store";
+import { ChatUnavailable } from "./chat-unavailable";
 import { Composer } from "./composer";
 import { MessageList } from "./message-list";
 
@@ -19,24 +19,6 @@ const STATUS: Record<ChatPhase, string> = {
   stopped: "You left the chat",
   unavailable: "Chat unavailable",
 };
-
-function Unavailable({ reason }: { reason: "terms" | "session" | null }) {
-  return (
-    <div className="mx-auto flex max-w-md flex-1 flex-col items-start justify-center gap-4 px-4 py-16">
-      <h1 className="text-xl font-semibold tracking-tight">
-        {reason === "terms" ? "Please review the updated Terms" : "Start from the home page"}
-      </h1>
-      <p className="text-sm text-muted-foreground">
-        {reason === "terms"
-          ? "The Terms changed since you last accepted them. Accept the current version to keep chatting."
-          : "Confirm you are 18 or older and accept the Terms before your first chat."}
-      </p>
-      <Button asChild>
-        <Link href="/">Go to start</Link>
-      </Button>
-    </div>
-  );
-}
 
 function Searching() {
   return (
@@ -78,7 +60,7 @@ export function ChatScreen({ mode }: { mode: ChatMode }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [canSkip, next]);
 
-  if (phase === "unavailable") return <Unavailable reason={unavailableReason} />;
+  if (phase === "unavailable") return <ChatUnavailable reason={unavailableReason} />;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">

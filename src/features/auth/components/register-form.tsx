@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage, fieldErrors } from "@/lib/http/error-messages";
 import { emailField, newPasswordField } from "@/lib/schemas/auth";
 import { authRepository } from "@/repositories/auth-repository";
+import { useSiteConfig } from "@/features/site/hooks/use-site-config";
 import { ConsentCheckbox } from "./consent-checkbox";
 
 const registerSchema = z
@@ -31,6 +32,7 @@ const registerSchema = z
 type RegisterValues = z.input<typeof registerSchema>;
 
 export function RegisterForm() {
+  const site = useSiteConfig();
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const form = useForm<RegisterValues>({
@@ -61,6 +63,20 @@ export function RegisterForm() {
           then sign in. The link expires in 24 hours.
         </p>
       </div>
+    );
+  }
+
+  if (!site.features.registration) {
+    return (
+      <Alert>
+        <AlertDescription>
+          New accounts are paused right now. You can still chat without an account from the{" "}
+          <Link href="/" className="underline underline-offset-4">
+            home page
+          </Link>
+          .
+        </AlertDescription>
+      </Alert>
     );
   }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { SiteNotices } from "@/features/site/components/site-notices";
 
 /** Full-height chat shell: a slim header and nothing else competing for attention. */
 export default function ChatLayout({ children }: LayoutProps<"/">) {
@@ -13,6 +14,7 @@ export default function ChatLayout({ children }: LayoutProps<"/">) {
           <ThemeToggle />
         </div>
       </header>
+      <SiteNotices />
       <main id="main" className="flex min-h-0 flex-1 flex-col">
         {children}
       </main>

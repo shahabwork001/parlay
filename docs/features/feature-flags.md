@@ -1,6 +1,6 @@
 # Feature: Feature flags and site configuration
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Feature toggles, maintenance mode and announcement banner managed from the admin
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 7).
+`useSiteConfig`, `SiteNotices`, `ChatUnavailable`; route /admin/site (`SiteSettings`)
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 7).
+TanStack Query `site/config` (refreshed every minute; defaults until loaded).
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 7).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 7.
+Done: announcement and maintenance notices under every header; start buttons disabled with an explanation when chat is paused; chat pages show a maintenance screen when the connection is refused; the sign-up page explains when new accounts are paused; admin editor with switches for maintenance and features and the banner text and tone.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 7 (operator controls; monetisation deferred).

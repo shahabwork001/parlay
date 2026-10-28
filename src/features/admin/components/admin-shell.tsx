@@ -15,6 +15,7 @@ const NAV: readonly { href: string; label: string; permission: Permission }[] = 
   { href: "/admin/bans", label: "Bans and appeals", permission: "users.view" },
   { href: "/admin/users", label: "Users", permission: "users.view" },
   { href: "/admin/rules", label: "Word lists", permission: "rules.manage" },
+  { href: "/admin/site", label: "Site settings", permission: "flags.manage" },
   { href: "/admin/staff", label: "Staff", permission: "staff.manage" },
   { href: "/admin/audit", label: "Audit log", permission: "audit.view" },
   { href: "/admin/system", label: "System health", permission: "system.view" },

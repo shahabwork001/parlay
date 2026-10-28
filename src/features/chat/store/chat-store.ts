@@ -4,6 +4,9 @@ import type { ChatMessagePayload, EndReason, MatchFound } from "@/services/realt
 export type ChatPhase =
   "connecting" | "searching" | "chatting" | "ended" | "stopped" | "unavailable";
 
+/** Why a chat page cannot start: Terms changed, no session, or the site is in maintenance. */
+export type UnavailableReason = "terms" | "session" | "maintenance";
+
 export type ChatEndReason = EndReason | "blocked" | "reported" | "connection";
 
 /** Used until the server sends the threshold for the session. */
@@ -30,7 +33,7 @@ interface ChatState {
   partnerTyping: boolean;
   endedReason: ChatEndReason | null;
   /** Why chat cannot start (e.g. the Terms changed); shown instead of the chat. */
-  unavailableReason: "terms" | "session" | null;
+  unavailableReason: UnavailableReason | null;
   notice: string | null;
 
   reset(): void;
@@ -38,7 +41,7 @@ interface ChatState {
   matched(match: MatchFound): void;
   ended(reason: ChatEndReason): void;
   stopped(): void;
-  unavailable(reason: "terms" | "session"): void;
+  unavailable(reason: UnavailableReason): void;
   addOwnMessage(localId: string, text: string): void;
   confirmOwnMessage(localId: string, delivered: ChatMessagePayload): void;
   failOwnMessage(localId: string): void;

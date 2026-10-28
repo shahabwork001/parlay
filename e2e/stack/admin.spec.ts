@@ -24,9 +24,9 @@ interface StaffCredentials {
   totpSecret: string;
 }
 
-/** A fresh Moderator with two-factor enabled, created with the operator tool in the API container. */
-function createModerator(): StaffCredentials {
-  const email = `e2e-mod-${randomUUID().slice(0, 8)}@example.com`;
+/** A fresh staff account with two-factor enabled, created with the operator tool in the API container. */
+function createStaff(role: "Moderator" | "Admin"): StaffCredentials {
+  const email = `e2e-${role.toLowerCase()}-${randomUUID().slice(0, 8)}@example.com`;
   const output = execFileSync(
     "docker",
     [
@@ -39,7 +39,7 @@ function createModerator(): StaffCredentials {
       "--email",
       email,
       "--role",
-      "Moderator",
+      role,
     ],
     { cwd: path.resolve(process.cwd(), ".."), encoding: "utf8" },
   );
@@ -60,7 +60,7 @@ async function signInAsStaff(page: Page, staff: StaffCredentials) {
 test("a reported stranger is banned from the admin queue and can no longer chat", async ({
   browser,
 }) => {
-  const staff = createModerator();
+  const staff = createStaff("Moderator");
   const [alice, bob] = await connectedTextPair(browser, openContexts);
   const note = `e2e harassment ${randomUUID().slice(0, 8)}`;
 
@@ -99,6 +99,43 @@ test("a reported stranger is banned from the admin queue and can no longer chat"
   await expect(moderator.getByRole("button", { name: new RegExp(note) })).toContainText("banned");
   await moderator.getByRole("link", { name: "Moderation queue" }).click();
   await expect(moderator.getByRole("link", { name: "Audit log" })).toHaveCount(0);
+});
+
+test("admins can pause chat with maintenance mode and an announcement", async ({ browser }) => {
+  const staff = createStaff("Admin");
+  const adminContext = await browser.newContext();
+  openContexts.push(adminContext);
+  const admin = await adminContext.newPage();
+  await signInAsStaff(admin, staff);
+
+  const setMaintenance = async (on: boolean) => {
+    await admin.goto("/admin/site", { waitUntil: "networkidle" });
+    const toggle = admin.getByRole("switch", { name: /Pause all chats/ });
+    if ((await toggle.getAttribute("aria-checked")) !== String(on)) await toggle.click();
+    await admin.getByLabel("Message (optional)").fill(on ? "Back in ten minutes." : "");
+    await admin
+      .getByLabel("Banner text (leave empty for none)")
+      .fill(on ? "We are upgrading Parley." : "");
+    await admin.getByRole("button", { name: "Save settings" }).click();
+    await expect(admin.getByText(/^Saved./)).toBeVisible();
+  };
+
+  try {
+    await setMaintenance(true);
+    const visitorContext = await browser.newContext();
+    openContexts.push(visitorContext);
+    const visitor = await visitorContext.newPage();
+    // The public configuration is cached for up to 15 seconds.
+    await expect(async () => {
+      await visitor.goto("/", { waitUntil: "networkidle" });
+      await expect(visitor.getByText("We are upgrading Parley.")).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 30_000 });
+    await expect(visitor.getByText("Back in ten minutes.").first()).toBeVisible();
+    await expect(visitor.getByRole("button", { name: "Start video" })).toBeDisabled();
+    await expect(visitor.getByRole("button", { name: "Start text" })).toBeDisabled();
+  } finally {
+    await setMaintenance(false);
+  }
 });
 
 test("visitors without a staff session get the staff sign-in instead of the admin area", async ({

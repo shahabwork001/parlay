@@ -2,7 +2,7 @@
 
 Single source of truth for the state of the frontend. Update this table and the linked feature doc with every change.
 
-Status values: Not started, In progress, Done, Blocked.
+Status values: Not started, In progress, Done, Blocked, Deferred (decided not to build for now).
 
 | Feature                              | Status      | Layer   | Phase | Doc                                                                                |
 | ------------------------------------ | ----------- | ------- | ----- | ---------------------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ Status values: Not started, In progress, Done, Blocked.
 | Staff management                     | Done        | FE + BE | 6     | [docs/features/admin-staff.md](docs/features/admin-staff.md)                       |
 | Audit log                            | Done        | FE + BE | 6     | [docs/features/audit-log.md](docs/features/audit-log.md)                           |
 | System health                        | Done        | FE + BE | 6     | [docs/features/system-health.md](docs/features/system-health.md)                   |
-| Plans and subscriptions              | Not started | FE + BE | 7     | [docs/features/plans-subscriptions.md](docs/features/plans-subscriptions.md)       |
-| Premium features                     | Not started | FE + BE | 7     | [docs/features/premium-features.md](docs/features/premium-features.md)             |
-| Feature flags and site configuration | Not started | FE + BE | 7     | [docs/features/feature-flags.md](docs/features/feature-flags.md)                   |
-| Ad slots                             | Not started | FE      | 7     | [docs/features/ad-slots.md](docs/features/ad-slots.md)                             |
+| Plans and subscriptions              | Deferred    | FE + BE | 7     | [docs/features/plans-subscriptions.md](docs/features/plans-subscriptions.md)       |
+| Premium features                     | Deferred    | FE + BE | 7     | [docs/features/premium-features.md](docs/features/premium-features.md)             |
+| Feature flags and site configuration | Done        | FE + BE | 7     | [docs/features/feature-flags.md](docs/features/feature-flags.md)                   |
+| Ad slots                             | Deferred    | FE      | 7     | [docs/features/ad-slots.md](docs/features/ad-slots.md)                             |

@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 7: site configuration; monetisation deferred)
+
+- Announcement and maintenance notices under every header; start buttons disabled with an explanation when chat is paused or a mode is off; maintenance screen in chat; sign-up page explains when new accounts are paused.
+- Admin site settings at `/admin/site` (maintenance, banner text and tone, feature switches).
+- Shared `ChatUnavailable` screen for text and video chat.
+- Tests: site notices and start buttons; Playwright maintenance flow (admin switches it on, visitors see it, admin switches it off).
+
 ### Added (Phase 6: admin panel)
 
 - Admin area at `/admin` (staff with a two-factor session only), navigation filtered by role: dashboard with live numbers and charts, moderation queue with review pane, gated evidence (blurred until revealed), keyboard shortcuts (J, K, D, W, B) and minor-safety escalation form, bans and appeals, users with sign-in history and manual bans, word lists editor, staff roles, audit log, system health.

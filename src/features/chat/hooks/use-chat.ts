@@ -65,7 +65,13 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       };
       const socket = openChatConnection((code) => {
         if (code === CONNECT_ERRORS.banned) return showBan();
-        store.unavailable(code === CONNECT_ERRORS.termsOutdated ? "terms" : "session");
+        store.unavailable(
+          code === CONNECT_ERRORS.termsOutdated
+            ? "terms"
+            : code === CONNECT_ERRORS.maintenance
+              ? "maintenance"
+              : "session",
+        );
         socket.disconnect();
       });
       socketRef.current = socket;

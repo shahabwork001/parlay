@@ -92,4 +92,5 @@ export const CONNECT_ERRORS = {
   authRequired: "auth.required",
   termsOutdated: "terms.outdated",
   banned: "moderation.banned",
+  maintenance: "site.maintenance",
 } as const;

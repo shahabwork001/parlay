@@ -1,10 +1,10 @@
 "use client";
 
 import { MessageSquareIcon, MicIcon, MicOffIcon, VideoIcon, VideoOffIcon } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Kbd } from "@/components/shared/kbd";
 import { Button } from "@/components/ui/button";
+import { ChatUnavailable } from "@/features/chat/components/chat-unavailable";
 import { Composer } from "@/features/chat/components/composer";
 import { MessageList } from "@/features/chat/components/message-list";
 import { ReportDialog } from "@/features/moderation/components/report-dialog";
@@ -50,23 +50,7 @@ export function VideoChatScreen() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [canSkip, chat]);
 
-  if (phase === "unavailable") {
-    return (
-      <div className="mx-auto flex max-w-md flex-1 flex-col items-start justify-center gap-4 px-4 py-16">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {unavailableReason === "terms"
-            ? "Please review the updated Terms"
-            : "Start from the home page"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Confirm you are 18 or older and accept the current Terms before chatting.
-        </p>
-        <Button asChild>
-          <Link href="/">Go to start</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (phase === "unavailable") return <ChatUnavailable reason={unavailableReason} />;
 
   if (!started) {
     return (

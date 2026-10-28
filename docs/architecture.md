@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-6 implemented. Sections marked _planned_ describe the target design.
+Status: Phases 1-7 implemented (monetisation deferred). Sections marked _planned_ describe the target design.
 
 ## Layers
 
