@@ -84,12 +84,13 @@ export class RedisMatchmaker implements Matchmaker {
       ],
     )) as Field[];
 
-    const [status, sessionId, partner, partnerDevice, partnerMeta, sharedCsv] = reply;
+    const [status, sessionId, partner, partnerDevice, partnerMeta, sharedCsv, waitedMs] = reply;
     if (status === "active" && sessionId) return { status: "in_session", sessionId };
     const caller = toParticipant(partner, partnerDevice, partnerMeta);
     if (status === "matched" && sessionId && caller) {
       return {
         status: "matched",
+        waitedMs: Number(waitedMs) || 0,
         session: {
           sessionId,
           mode: ticket.mode,

@@ -1,7 +1,15 @@
 import { createServer } from "node:http";
 import { RecordContentFlag } from "../application/features/moderation/content-flags.js";
 import { SubmitReport } from "../application/features/moderation/reports.js";
+import { createAdminContext } from "../infrastructure/admin/admin-composition.js";
+import { RedisLiveStats } from "../infrastructure/admin/redis-live-stats.js";
 import { RedisRateLimiter } from "../infrastructure/caching/redis-rate-limiter.js";
+import type { HealthCheck } from "../infrastructure/health/health-check.js";
+import {
+  HttpHealthCheck,
+  TcpHealthCheck,
+  turnTcpEndpoint,
+} from "../infrastructure/health/remote-health-checks.js";
 import { loadApiConfig } from "../infrastructure/config/config.js";
 import { createIdentityContext } from "../infrastructure/identity/identity-composition.js";
 import { createInfrastructure } from "../infrastructure/infrastructure.js";
@@ -13,6 +21,8 @@ import { onShutdown } from "../infrastructure/process/shutdown.js";
 import { createApp } from "./app.js";
 import { authenticate } from "./auth/authentication.js";
 import { registerIdentityOpenApi } from "./features/identity/identity-openapi.js";
+import { createAdminRouter } from "./features/admin/admin-router.js";
+import { registerAdminOpenApi } from "./features/admin/admin-openapi.js";
 import { createIdentityRouter } from "./features/identity/identity-router.js";
 import {
   createModerationRouter,
@@ -36,6 +46,17 @@ const identity = createIdentityContext(infrastructure.database, infrastructure.e
 const rateLimiter = new RedisRateLimiter(infrastructure.redis);
 const moderation = createModerationContext(infrastructure, config);
 const clock = () => new Date();
+const liveStats = new RedisLiveStats(infrastructure.redis);
+const admin = createAdminContext(infrastructure, moderation, identity, liveStats);
+
+/** The admin system view also covers TURN (TCP reachability) and the workers process. */
+const systemChecks: HealthCheck[] = [...infrastructure.healthChecks];
+const turnEndpoint = turnTcpEndpoint(config.turn.turnUrls);
+if (turnEndpoint)
+  systemChecks.push(
+    new TcpHealthCheck("turn", config.health.turnHost ?? turnEndpoint.host, turnEndpoint.port),
+  );
+if (config.health.workersUrl) systemChecks.push(new HttpHealthCheck("workers", config.health.workersUrl));
 
 const matchmaker = new RedisMatchmaker(infrastructure.redis, {
   interestFallbackMs: config.matchInterestFallbackMs,
@@ -91,6 +112,10 @@ const app = createApp({
       }),
       openApi: registerModerationOpenApi,
     },
+    {
+      router: createAdminRouter({ context: admin, healthChecks: systemChecks }),
+      openApi: registerAdminOpenApi,
+    },
   ],
 });
 
@@ -128,6 +153,7 @@ const chat = new ChatGateway(sockets.io, {
     clock,
   ),
   policy: moderation.policy,
+  matchStats: liveStats,
   logger: logger.child({ component: "chat" }),
   retryIntervalMs: 2000,
   presenceIntervalMs: 10_000,

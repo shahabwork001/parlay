@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-5 implemented (foundation, identity, matchmaking, text and video chat, moderation and safety). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
+Status: Phases 1-6 implemented (foundation, identity, matchmaking, text and video chat, moderation and safety, admin panel). Sections marked _planned_ describe the target design that later phases implement; update them as features land.
 
 ## Components
 
@@ -180,6 +180,27 @@ flowchart LR
 - **Pools**: matchmaking queues are keyed `mm:queue:{mode}:{pool}` with pools `standard`, `low-trust` (trust below 25) and `shadow` (shadow-banned).
 - **Evidence** is the report snapshot plus the last 10 messages from a 15-minute Redis buffer (`chat:recent:{session}`); it expires through a TTL index (30 days, 365 for minor safety). Staff access is audit-logged.
 - **Minor safety**: see [minor-safety-workflow.md](minor-safety-workflow.md).
+
+## Admin panel (implemented in Phase 6)
+
+```mermaid
+flowchart LR
+  UI[Admin UI] -->|bearer, 2FA session| R[/api/v1/admin router/]
+  R -->|requirePermission| Q[Queries]
+  R -->|requirePermission| C[Commands]
+  Q --> RM[AdminReadModel: MongoDB projections]
+  Q --> LS[LiveStats: Redis]
+  Q --> QI[QueueInspector: RabbitMQ]
+  C --> AG[Aggregates: Report, Ban, User]
+  C --> BS[BanService]
+  C --> AU[(audit_log)]
+  BS -->|emitter| SK[Sockets: banned / warning]
+```
+
+- Read side and commands are separate ([ADR 0014](decisions/0014-admin-read-side.md)): lists come from projections, each staff action is one audited use case.
+- Decisions on a report lift the automatic suspension it caused, then warn (`moderation:warning`) or ban; trust moves -15 for the reported person when upheld, -5 for the reporter when dismissed.
+- Role changes sign the person out everywhere, so the next session carries the new roles and needs 2FA.
+- `create-staff` bootstraps staff (2FA enabled) from the API container.
 
 ## Health
 

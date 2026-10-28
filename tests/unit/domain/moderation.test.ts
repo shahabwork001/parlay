@@ -156,3 +156,59 @@ describe("trust", () => {
     expect(trustKeys({ kind: "anonymous", subjectId: "d", deviceId: "d" })).toEqual(["device:d"]);
   });
 });
+
+describe("report decisions", () => {
+  const submit = (category: "appears-minor" | "spam") =>
+    Report.submit(
+      {
+        sessionId: "s",
+        mode: "text",
+        category,
+        note: null,
+        reporter: party("a"),
+        reported: party("b"),
+        evidenceId: null,
+      },
+      now,
+    );
+
+  it("resolves once and knows whether it was upheld", () => {
+    const report = submit("spam");
+    expect(report.resolve("warned", "mod", "first offence", now)).toBeNull();
+    expect(report).toMatchObject({ status: "actioned", isUpheld: true, resolvedAt: now });
+    expect(report.resolve("dismissed", "mod", null, now)).toBe("report.already_resolved");
+
+    const dismissed = submit("spam");
+    dismissed.resolve("dismissed", "mod", null, now);
+    expect(dismissed).toMatchObject({ status: "dismissed", isUpheld: false });
+  });
+
+  it("records escalation only for minor-safety reports", () => {
+    const minor = submit("appears-minor");
+    expect(minor.recordEscalation("reported", "CT-1")).toBeNull();
+    expect([minor.escalation, minor.escalationReference]).toEqual(["reported", "CT-1"]);
+    expect(submit("spam").recordEscalation("not-required", null)).toBe("report.escalation_not_applicable");
+  });
+});
+
+describe("appeal decisions", () => {
+  it("lifts the ban when accepted and closes the appeal either way", () => {
+    const ban = Ban.issue(
+      { targets: [{ kind: "device", value: "d" }], mode: "full", reason: "spam", source: "moderator" },
+      now,
+    );
+    expect(ban.decideAppeal(true, "mod", now)).toBe("ban.no_pending_appeal");
+    ban.submitAppeal("please reconsider this decision", now);
+    expect(ban.decideAppeal(true, "mod", now)).toBeNull();
+    expect(ban.appeal).toMatchObject({ status: "accepted", decidedAt: now });
+    expect(ban.isActive(now)).toBe(false);
+
+    const kept = Ban.issue(
+      { targets: [{ kind: "device", value: "d" }], mode: "full", reason: "spam", source: "moderator" },
+      now,
+    );
+    kept.submitAppeal("please reconsider this decision", now);
+    kept.decideAppeal(false, "mod", now);
+    expect([kept.appeal?.status, kept.isActive(now)]).toEqual(["rejected", true]);
+  });
+});

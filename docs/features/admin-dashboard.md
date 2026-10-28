@@ -1,6 +1,6 @@
 # Feature: Admin dashboard
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Live online users, active sessions, queue length, matches/min, reports/hour, ave
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+GET /api/v1/admin/dashboard (`dashboard.view`); `GetDashboard`; `LiveStats` (`RedisLiveStats`), `MatchStatsRecorder`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+Redis `stats:matches:{minute}` and `stats:wait:{minute}` counters (2 h TTL); presence keys, queues and `mm:sessions` for live values; reports from MongoDB.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 6.
+Done: online now, waiting (text/video), active chats, matches per minute (60 min series), average wait of the earlier person (15 min), reports per hour (24 h series), open reports by tier, pending appeals. Every /api/v1/admin route needs its permission on a two-factor session (`requirePermission`). Revenue arrives with plans in Phase 7.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

@@ -39,6 +39,9 @@ Living document. Phase 8 performs the full review; every phase adds its mitigati
 - Report evidence is restricted to staff with `reports.review` on a 2FA session (minor-safety evidence additionally `moderation.escalate`); every view is written to `audit_log` before the evidence is returned. Evidence expires by TTL index.
 - Snapshots are validated as JPEG (magic bytes) and capped at 96 000 characters of base64; JPEG decoding in the classifier is capped at one megapixel.
 - Chat text is moderated server-side (slurs rejected, contact details removed); the client never decides what is delivered.
+- Every admin route requires a permission and a two-factor session; minor-safety decisions and evidence also need `moderation.escalate`. Admin responses are mapped field by field, so password hashes, TOTP secrets and network hashes never leave the server.
+- Staff role changes revoke all of the person's refresh tokens. The last SuperAdmin cannot be demoted and nobody can change their own roles.
+- Every staff action and every evidence view is written to the insert-only audit log.
 - Device fingerprints and client IPs are stored only as keyed hashes.
 - Video and full chat logs are never stored; only report evidence, with retention TTLs (Phase 5).
 - Logs must not contain secrets, emails, IPs, fingerprints or request headers (enforced by serializers and redaction; covered by a unit test).

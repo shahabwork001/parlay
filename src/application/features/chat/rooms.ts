@@ -24,3 +24,6 @@ export function roomForBanTarget(target: BanTarget): string {
 
 /** Server-to-client event telling a person they were banned, just before they are disconnected. */
 export const BANNED_EVENT = "moderation:banned";
+
+/** Server-to-client event carrying a moderator warning; the person keeps chatting. */
+export const WARNING_EVENT = "moderation:warning";

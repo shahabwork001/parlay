@@ -35,6 +35,11 @@ export interface BanEnforcer {
   enforce(targets: readonly BanTarget[]): Promise<void>;
 }
 
+/** Tells connected people about a moderator warning (they keep chatting). */
+export interface ModerationNotifier {
+  warn(targets: readonly BanTarget[], message: string): Promise<void>;
+}
+
 export interface TrustStore {
   /** The lowest score among the keys (account and device). Unknown keys have the default score. */
   scoreOf(keys: readonly string[]): Promise<number>;
@@ -92,6 +97,11 @@ export interface AuditLog {
 
 export interface TextRulesProvider {
   current(): Promise<TextRules>;
+}
+
+/** Editable rules; saving takes effect everywhere within the providers' refresh interval. */
+export interface TextRulesRepository extends TextRulesProvider {
+  save(rules: TextRules): Promise<void>;
 }
 
 /** Counts events per key in a sliding window (e.g. content flags per device). */

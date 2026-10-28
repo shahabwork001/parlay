@@ -61,6 +61,9 @@ const apiSchema = infrastructureSchema.extend({
   TURN_URLS: iceUrls("turn").pipe(z.array(z.string()).min(1)),
   STUN_URLS: iceUrls("stun").default([]),
   TURN_CREDENTIAL_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3600),
+  /** Optional TCP endpoint the API probes for the TURN health check; defaults to the TURN URLs host. */
+  TURN_HEALTH_HOST: z.string().min(1).optional(),
+  WORKERS_HEALTH_URL: z.url().optional(),
 });
 
 const workersSchema = infrastructureSchema.extend({
@@ -120,6 +123,11 @@ export interface ApiConfig extends InfrastructureConfig {
     readonly turnUrls: readonly string[];
     readonly stunUrls: readonly string[];
     readonly ttlSeconds: number;
+  };
+  /** Extra checks for the admin system-health view. */
+  readonly health: {
+    readonly turnHost: string | undefined;
+    readonly workersUrl: string | undefined;
   };
 }
 
@@ -197,6 +205,7 @@ export function loadApiConfig(environment: Environment = process.env): ApiConfig
       stunUrls: values.STUN_URLS,
       ttlSeconds: values.TURN_CREDENTIAL_TTL_SECONDS,
     },
+    health: { turnHost: values.TURN_HEALTH_HOST, workersUrl: values.WORKERS_HEALTH_URL },
   };
 }
 

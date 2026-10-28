@@ -139,6 +139,8 @@ services:
       TURN_SECRET: ${TURN_SECRET:?}
       TURN_URLS: ${TURN_URLS:-turn:localhost:3478?transport=udp,turn:localhost:3478?transport=tcp}
       STUN_URLS: ${STUN_URLS:-stun:localhost:3478}
+      TURN_HEALTH_HOST: ${TURN_HEALTH_HOST:-coturn}
+      WORKERS_HEALTH_URL: ${WORKERS_HEALTH_URL:-http://workers:8081/health/ready}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@parley.local}
     ports:
       - "8080:8080"

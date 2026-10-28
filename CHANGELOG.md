@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 6: admin panel)
+
+- Admin API under `/api/v1/admin`, each route behind a permission and a two-factor session: dashboard, moderation queue and report detail, report decisions (dismiss, warn, ban) and minor-safety escalation, bans (list, manual ban, lift) and appeal decisions, user search and detail with sign-in history, text rules editor, staff roles, audit log, system health.
+- Read model over MongoDB projections, live stats in Redis (matches per minute, average wait), RabbitMQ queue inspection, TURN and workers health checks.
+- `moderation:warning` socket event for upheld reports.
+- `create-staff` tool: staff account with 2FA enabled, credentials printed once.
+- ADR 0014. Tests: admin use cases, admin routes (permissions, 2FA, mapping), read model, live stats, queue inspector, worker subscription list (194 unit and 67 integration in total).
+
+### Changed
+
+- Pairing returns how long the waiting person waited; the gateway records match stats.
+- Worker consumers are built from `WORKER_SUBSCRIPTIONS`, shared with the system view.
+
+### Fixed
+
+- Lifting an already lifted ban returned 404 instead of 409.
+- Phase 5 docs had lost table rows (API endpoints, events, configuration) to a broken replacement; restored.
+
 ### Added (Phase 5: moderation and safety)
 
 - Reports: `POST /api/v1/reports` with categories, snapshot and the last messages as evidence; ends the chat and blocks the partner; 10-minute report window after a chat ends.

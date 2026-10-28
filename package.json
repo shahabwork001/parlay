@@ -22,7 +22,8 @@
     "test:all": "vitest run",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "seed": "node dist/tools/seed.js",
-    "dev:seed": "tsx --env-file-if-exists=.env.local src/tools/seed.ts"
+    "dev:seed": "tsx --env-file-if-exists=.env.local src/tools/seed.ts",
+    "staff:create": "node dist/tools/create-staff.js"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",

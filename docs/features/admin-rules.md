@@ -1,6 +1,6 @@
 # Feature: Word lists and rules
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Edit blocked words, regex rules, thresholds and rate limits, applied live withou
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+GET/PUT /api/v1/admin/rules/text (`rules.manage`); `UpdateTextRules`; `TextRulesRepository`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+`moderation_rules` document `text` (see Text moderation).
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 6.
+Done: lists are trimmed, lowercased, de-duplicated and sorted; saved rules apply on this instance at once and on others within 30 s; audit-logged.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

@@ -28,6 +28,19 @@ export type PriorityTier = "critical" | "high" | "normal" | "low";
 /** Escalation to an outside authority (e.g. NCMEC CyberTipline), tracked for minor-safety reports. */
 export type EscalationStatus = "required" | "reported" | "not-required";
 
+/** What a moderator decided. `warned` and `banned` uphold the report; `dismissed` rejects it. */
+export const REPORT_OUTCOMES = ["dismissed", "warned", "banned"] as const;
+export type ReportOutcome = (typeof REPORT_OUTCOMES)[number];
+
+export interface ReportResolution {
+  readonly outcome: ReportOutcome;
+  readonly by: EntityId;
+  readonly at: Date;
+  readonly note: string | null;
+}
+
+export type ReportError = "report.already_resolved" | "report.escalation_not_applicable";
+
 /** A participant as the moderation side sees them. Network values are keyed hashes, never raw IPs. */
 export interface ReportParty {
   readonly subjectId: EntityId;
@@ -59,6 +72,9 @@ export interface ReportState {
   readonly tier: PriorityTier;
   readonly score: ReportScore | null;
   readonly escalation: EscalationStatus | null;
+  /** Authority reference (e.g. a CyberTipline report number) once escalated. */
+  readonly escalationReference: string | null;
+  readonly resolution: ReportResolution | null;
   readonly createdAt: Date;
   readonly scoredAt: Date | null;
   readonly resolvedAt: Date | null;
@@ -133,6 +149,8 @@ export class Report extends AggregateRoot {
   #tier: PriorityTier;
   #score: ReportScore | null;
   #escalation: EscalationStatus | null;
+  #escalationReference: string | null;
+  #resolution: ReportResolution | null;
   #scoredAt: Date | null;
   #resolvedAt: Date | null;
 
@@ -151,6 +169,8 @@ export class Report extends AggregateRoot {
     this.#tier = state.tier;
     this.#score = state.score;
     this.#escalation = state.escalation;
+    this.#escalationReference = state.escalationReference;
+    this.#resolution = state.resolution;
     this.#scoredAt = state.scoredAt;
     this.#resolvedAt = state.resolvedAt;
   }
@@ -174,6 +194,8 @@ export class Report extends AggregateRoot {
       tier: initial.tier,
       score: null,
       escalation: minorSafety ? "required" : null,
+      escalationReference: null,
+      resolution: null,
       createdAt: now,
       scoredAt: null,
       resolvedAt: null,
@@ -214,6 +236,35 @@ export class Report extends AggregateRoot {
 
   get resolvedAt(): Date | null {
     return this.#resolvedAt;
+  }
+
+  get resolution(): ReportResolution | null {
+    return this.#resolution;
+  }
+
+  get escalationReference(): string | null {
+    return this.#escalationReference;
+  }
+
+  /** Upheld means the reported person broke the rules (warned or banned). */
+  get isUpheld(): boolean {
+    return this.#resolution !== null && this.#resolution.outcome !== "dismissed";
+  }
+
+  resolve(outcome: ReportOutcome, by: EntityId, note: string | null, now: Date): ReportError | null {
+    if (this.#resolution) return "report.already_resolved";
+    this.#resolution = { outcome, by, at: now, note };
+    this.#status = outcome === "dismissed" ? "dismissed" : "actioned";
+    this.#resolvedAt = now;
+    return null;
+  }
+
+  /** Records the outcome of the minor-safety escalation step. */
+  recordEscalation(status: "reported" | "not-required", reference: string | null): ReportError | null {
+    if (this.#escalation === null) return "report.escalation_not_applicable";
+    this.#escalation = status;
+    this.#escalationReference = status === "reported" ? reference : null;
+    return null;
   }
 
   applyScore(

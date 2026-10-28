@@ -74,7 +74,8 @@ export interface NewBan {
   readonly durationMs?: number | null;
 }
 
-export type BanError = "ban.not_active" | "ban.appeal_exists" | "ban.not_appealable";
+export type BanError =
+  "ban.not_active" | "ban.appeal_exists" | "ban.not_appealable" | "ban.no_pending_appeal";
 
 export const targetKey = (target: BanTarget): string => `${target.kind}:${target.value}`;
 
@@ -163,6 +164,17 @@ export class Ban extends AggregateRoot {
     if (!this.isAppealable) return "ban.not_appealable";
     if (this.#appeal) return "ban.appeal_exists";
     this.#appeal = { message, submittedAt: now, status: "pending", decidedAt: null };
+    return null;
+  }
+
+  /** Accepting an appeal lifts the ban; rejecting it keeps the ban and closes the appeal. */
+  decideAppeal(accept: boolean, by: EntityId, now: Date): BanError | null {
+    if (this.#appeal?.status !== "pending") return "ban.no_pending_appeal";
+    this.#appeal = { ...this.#appeal, status: accept ? "accepted" : "rejected", decidedAt: now };
+    if (accept && this.isActive(now)) {
+      this.#liftedAt = now;
+      this.#liftedBy = by;
+    }
     return null;
   }
 

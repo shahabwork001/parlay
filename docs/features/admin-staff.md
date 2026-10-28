@@ -1,6 +1,6 @@
 # Feature: Staff management
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Invite staff, assign roles, enforce 2FA.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+GET /api/v1/admin/staff, PUT /api/v1/admin/staff/roles {email | userId, roles} (`staff.manage`); `SetStaffRoles`; tool `npm run staff:create`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+`users.roles`.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 6.
+Done: grant, change or remove roles by email or id. Requires a confirmed email, protects the last SuperAdmin, forbids changing your own roles, and signs the person out everywhere so the next session carries the new roles (and needs 2FA). `create-staff` creates a staff account with 2FA enabled from the server shell.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

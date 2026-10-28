@@ -139,6 +139,11 @@ export class User extends AggregateRoot {
     return this.#lockedUntil !== null && this.#lockedUntil > now;
   }
 
+  /** Replaces the staff roles. Authorisation rules (who may grant what) live in the use case. */
+  setRoles(roles: readonly Role[]): void {
+    this.#roles = [...new Set(roles)];
+  }
+
   verifyEmail(now: Date): void {
     this.#emailVerifiedAt ??= now;
   }

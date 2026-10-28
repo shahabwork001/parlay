@@ -61,10 +61,20 @@ export class BanService {
 
   async lift(banId: EntityId, liftedBy: EntityId | null): Promise<Result<Ban>> {
     const ban = await this.bans.getById(banId);
-    if (!ban) return fail(ModerationErrors.noActiveBan);
-    if (ban.lift(liftedBy, this.clock())) return fail(ModerationErrors.noActiveBan);
+    if (!ban) return fail(ModerationErrors.banNotFound);
+    if (ban.lift(liftedBy, this.clock())) return fail(ModerationErrors.banNotActive);
     await this.bans.update(ban);
     await this.cache.remove(ban);
+    return ok(ban);
+  }
+
+  /** Accepting lifts the ban (and clears it from the cache); rejecting keeps it. */
+  async decideAppeal(banId: EntityId, accept: boolean, by: EntityId): Promise<Result<Ban>> {
+    const ban = await this.bans.getById(banId);
+    if (!ban) return fail(ModerationErrors.banNotFound);
+    if (ban.decideAppeal(accept, by, this.clock())) return fail(ModerationErrors.noPendingAppeal);
+    if (!(await this.bans.update(ban))) return fail(ModerationErrors.noPendingAppeal);
+    if (ban.liftedAt) await this.cache.remove(ban);
     return ok(ban);
   }
 

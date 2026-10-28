@@ -18,6 +18,9 @@ export const ModerationErrors = {
     "Minor-safety evidence is restricted to staff who can escalate.",
   ),
   noActiveBan: AppErrors.notFound("ban.not_found", "There is no active ban on this account or device."),
+  banNotFound: AppErrors.notFound("ban.not_found", "Ban not found."),
+  banNotActive: AppErrors.conflict("ban.not_active", "This ban is no longer active."),
+  noPendingAppeal: AppErrors.conflict("ban.no_pending_appeal", "There is no pending appeal on this ban."),
   appealExists: AppErrors.conflict("ban.appeal_exists", "You already appealed this ban."),
   notAppealable: AppErrors.conflict("ban.not_appealable", "This ban cannot be appealed."),
 } as const;

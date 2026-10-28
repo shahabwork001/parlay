@@ -1,6 +1,6 @@
 # Feature: System health
 
-Status: In progress
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Status of MongoDB, Redis, RabbitMQ, TURN and worker queues.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+GET /api/v1/admin/system (`system.view`); `QueueInspector` (`RabbitMqQueueInspector`); `TcpHealthCheck`, `HttpHealthCheck`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+None stored. Queue names come from `WORKER_SUBSCRIPTIONS`, shared with the workers.
 
 ## Business rules
 
@@ -25,8 +25,10 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Readiness endpoint with MongoDB, Redis and RabbitMQ checks on both the API (8080) and the workers (8081). TURN and worker-queue checks and the admin view come in Phase 6.
+Done: MongoDB, Redis, RabbitMQ, TURN (TCP reachability, `TURN_HEALTH_HOST`) and the workers (`WORKERS_HEALTH_URL`), plus messages and consumers for every worker queue and its dead-letter queue. Public readiness stays at /health/ready.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Readiness endpoints (Phase 1).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

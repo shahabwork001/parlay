@@ -18,6 +18,8 @@ export const TRUST_ADJUSTMENTS = {
   reportReceived: -3,
   /** A moderator upheld a report. */
   reportUpheld: -15,
+  /** A moderator dismissed a report this person filed. */
+  reportRejected: -5,
   /** The client-side screening flagged this person's own video. */
   contentFlag: -5,
   /** A message was rejected for slurs. */

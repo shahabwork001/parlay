@@ -24,6 +24,7 @@ import type {
 } from "../../src/application/features/identity/ports.js";
 import type { AggregateRoot } from "../../src/domain/common/aggregate-root.js";
 import type { Device } from "../../src/domain/identity/device.js";
+import type { Role } from "../../src/domain/identity/roles.js";
 import type { User } from "../../src/domain/identity/user.js";
 import { JwtAccessTokenService } from "../../src/infrastructure/identity/jwt-access-tokens.js";
 
@@ -68,6 +69,10 @@ export class InMemoryUsers extends InMemoryRepository<User> implements UserRepos
 
   findByEmail(email: string): Promise<User | null> {
     return Promise.resolve(this.all().find((user) => user.email === email) ?? null);
+  }
+
+  countWithRole(role: Role): Promise<number> {
+    return Promise.resolve(this.all().filter((user) => user.roles.includes(role)).length);
   }
 }
 

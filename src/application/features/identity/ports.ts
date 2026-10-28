@@ -8,6 +8,7 @@ export type Clock = () => Date;
 
 export interface UserRepository extends Repository<User> {
   findByEmail(email: string): Promise<User | null>;
+  countWithRole(role: Role): Promise<number>;
 }
 
 export interface DeviceRepository extends Repository<Device> {

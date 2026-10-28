@@ -11,7 +11,8 @@ import type {
   EventCounter,
   EvidenceStore,
   ReportRepository,
-  TextRulesProvider,
+  ModerationNotifier,
+  TextRulesRepository,
   TrustStore,
 } from "../../application/features/moderation/ports.js";
 import { RedisRecentMessages } from "../chat/redis-recent-messages.js";
@@ -37,7 +38,8 @@ export interface ModerationContext {
   readonly evidence: EvidenceStore;
   readonly audit: AuditLog;
   readonly trust: TrustStore;
-  readonly textRules: TextRulesProvider;
+  readonly textRules: TextRulesRepository;
+  readonly notifier: ModerationNotifier;
   readonly classifier: ContentClassifier;
   readonly counter: EventCounter;
   readonly recentMessages: RecentMessages;
@@ -51,6 +53,7 @@ export function createModerationContext(
   const { database, redis } = infrastructure;
   const banRepository = new MongoBanRepository(database);
   const textRules = new MongoTextRulesProvider(database);
+  const enforcer = new SocketBanEnforcer(redis);
   return {
     policy: defaultModerationPolicy(config.moderation),
     reports: new MongoReportRepository(database),
@@ -58,7 +61,7 @@ export function createModerationContext(
     bans: new BanService(
       banRepository,
       new RedisBanCache(redis),
-      new SocketBanEnforcer(redis),
+      enforcer,
       infrastructure.eventPublisher,
       clock,
     ),
@@ -66,6 +69,7 @@ export function createModerationContext(
     audit: new MongoAuditLog(database),
     trust: new CachedTrustStore(database, redis, clock),
     textRules,
+    notifier: enforcer,
     classifier: new HeuristicContentClassifier(textRules),
     counter: new RedisEventCounter(redis),
     recentMessages: new RedisRecentMessages(redis),

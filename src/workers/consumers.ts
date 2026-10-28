@@ -2,15 +2,8 @@ import type {
   IntegrationEventDefinition,
   IntegrationEventHandler,
 } from "../application/abstractions/messaging/integration-event.js";
-import { PartnerBlocked, RecordPartnerBlock } from "../application/features/chat/blocks.js";
-import { EmailRequested } from "../application/features/identity/events.js";
+import { RecordPartnerBlock } from "../application/features/chat/blocks.js";
 import { AuditBanIssued } from "../application/features/moderation/evidence-access.js";
-import {
-  BanIssued,
-  ContentFlagged,
-  ReportSubmitted,
-  SessionEnded,
-} from "../application/features/moderation/events.js";
 import { ScoreReport } from "../application/features/moderation/scoring.js";
 import {
   PenaliseFlaggedContent,
@@ -21,6 +14,7 @@ import { SendRequestedEmail } from "../application/features/notifications/send-r
 import type { WorkersConfig } from "../infrastructure/config/config.js";
 import type { Infrastructure } from "../infrastructure/infrastructure.js";
 import { type MessageConsumer, RabbitMqConsumer } from "../infrastructure/messaging/rabbitmq-consumer.js";
+import { WORKER_SUBSCRIPTIONS } from "../infrastructure/messaging/worker-subscriptions.js";
 import type { ModerationContext } from "../infrastructure/moderation/moderation-composition.js";
 import type { Logger } from "../infrastructure/observability/logger.js";
 import { MongoBlockRepository } from "../infrastructure/persistence/mongo/block-repository.js";
@@ -34,8 +28,8 @@ export interface WorkerDependencies {
 }
 
 /**
- * Every event subscription hosted by the workers process. Features add their consumers here
- * (analytics aggregation and cleanup arrive in later phases).
+ * Every event subscription hosted by the workers process, one consumer per entry of
+ * `WORKER_SUBSCRIPTIONS` (analytics aggregation and cleanup arrive in later phases).
  */
 export function createConsumers(dependencies: WorkerDependencies): MessageConsumer[] {
   const { infrastructure, moderation, config, logger } = dependencies;
@@ -45,34 +39,21 @@ export function createConsumers(dependencies: WorkerDependencies): MessageConsum
     retryDelayMs: config.rabbitMq.retryDelayMs,
   };
   const consumer = <T>(
-    subscriber: string,
-    name: string,
-    definition: IntegrationEventDefinition<T>,
+    subscription: { subscriber: string; definition: IntegrationEventDefinition<T> },
     handler: IntegrationEventHandler<T>,
   ) =>
     new RabbitMqConsumer(
       infrastructure.rabbitMq,
-      { subscriber, definition, handler, ...consumerOptions },
-      logger.child({ consumer: name }),
+      { ...subscription, handler, ...consumerOptions },
+      logger.child({ consumer: `${subscription.subscriber}.${subscription.definition.routingKey}` }),
     );
 
+  const subscriptions = WORKER_SUBSCRIPTIONS;
   return [
+    consumer(subscriptions.email, new SendRequestedEmail(dependencies.emailSender)),
+    consumer(subscriptions.blocks, new RecordPartnerBlock(new MongoBlockRepository(infrastructure.database))),
     consumer(
-      "notifications",
-      "notifications.email",
-      EmailRequested,
-      new SendRequestedEmail(dependencies.emailSender),
-    ),
-    consumer(
-      "chat",
-      "chat.blocks",
-      PartnerBlocked,
-      new RecordPartnerBlock(new MongoBlockRepository(infrastructure.database)),
-    ),
-    consumer(
-      "moderation",
-      "moderation.scoring",
-      ReportSubmitted,
+      subscriptions.scoring,
       new ScoreReport({
         reports: moderation.reports,
         evidence: moderation.evidence,
@@ -83,8 +64,8 @@ export function createConsumers(dependencies: WorkerDependencies): MessageConsum
         clock: () => new Date(),
       }),
     ),
-    consumer("trust", "trust.sessions", SessionEnded, new RewardCleanSession(moderation.trust)),
-    consumer("trust", "trust.flags", ContentFlagged, new PenaliseFlaggedContent(moderation.trust)),
-    consumer("audit", "audit.bans", BanIssued, new AuditBanIssued(moderation.audit)),
+    consumer(subscriptions.trustSessions, new RewardCleanSession(moderation.trust)),
+    consumer(subscriptions.trustFlags, new PenaliseFlaggedContent(moderation.trust)),
+    consumer(subscriptions.auditBans, new AuditBanIssued(moderation.audit)),
   ];
 }

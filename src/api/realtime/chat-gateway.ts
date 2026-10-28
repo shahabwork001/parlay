@@ -10,6 +10,7 @@ import {
   type Participant,
   partnerOf,
 } from "../../application/features/chat/chat-types.js";
+import type { MatchStatsRecorder } from "../../application/features/chat/match-stats.js";
 import type { Matchmaker } from "../../application/features/chat/matchmaker.js";
 import type { RecentMessages } from "../../application/features/chat/recent-messages.js";
 import {
@@ -67,6 +68,7 @@ export interface ChatGatewayOptions {
   readonly recentMessages: RecentMessages;
   readonly recordContentFlag: RecordContentFlag;
   readonly policy: ModerationPolicy;
+  readonly matchStats: MatchStatsRecorder;
   readonly logger: Logger;
   /** How often a waiting participant retries pairing (picks up the interest fallback). */
   readonly retryIntervalMs: number;
@@ -457,6 +459,9 @@ export class ChatGateway implements ChatSessionControl {
     const result = await this.options.matchmaker.join(ticket, { fresh });
     if (result.status === "matched") {
       this.announce(result.session, ticket.pool);
+      this.options.matchStats.recordMatch(result.waitedMs, new Date()).catch((error: unknown) => {
+        this.options.logger.warn({ err: error }, "Recording match stats failed");
+      });
       return "matched";
     }
     if (result.status === "queued") {

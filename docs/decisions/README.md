@@ -17,3 +17,4 @@ Short records of significant technical choices. Template: Context, Decision, Con
 | [0011](0011-redis-matchmaking.md)    | Matchmaking in atomic Redis Lua scripts                                | Accepted |
 | [0012](0012-moderation-pipeline.md)  | Synchronous safety actions, asynchronous scoring, pluggable classifier | Accepted |
 | [0013](0013-bans-trust-and-pools.md) | Bans with a Redis write-through cache; trust and shadow bans as pools  | Accepted |
+| [0014](0014-admin-read-side.md)      | Admin read side plus audited commands; server-side staff tool          | Accepted |

@@ -27,7 +27,7 @@ import { LuaScript } from "../caching/lua-script.js";
  *
  * ARGV: prefix, subject, device, meta, mode, pool, language, interestsCsv, nowMs, fallbackMs,
  *       scanLimit, recentWindowMs, newSessionId, sessionTtlSeconds
- * Returns: {"active", sessionId} | {"matched", sessionId, partner, partnerDevice, partnerMeta, sharedCsv}
+ * Returns: {"active", sessionId} | {"matched", sessionId, partner, partnerDevice, partnerMeta, sharedCsv, waitedMs}
  *        | {"queued"}
  */
 export const PAIR_SCRIPT = new LuaScript(`
@@ -48,7 +48,7 @@ local acceptsRandom = csv == '' or myWait >= fallback
 local myBlocks = p .. ':blocks:' .. me
 local myRecent = p .. ':recent:' .. me
 
-local best, bestDevice, bestMeta, bestShared, bestSharedCsv = nil, nil, nil, -1, ''
+local best, bestDevice, bestMeta, bestShared, bestSharedCsv, bestAt = nil, nil, nil, -1, '', now
 for _, candidate in ipairs(redis.call('ZRANGE', queue, 0, limit - 1)) do
   if candidate ~= me then
     local t = redis.call('HMGET', p .. ':ticket:' .. candidate, 'device', 'language', 'interests', 'enqueuedAt', 'meta')
@@ -76,7 +76,7 @@ for _, candidate in ipairs(redis.call('ZRANGE', queue, 0, limit - 1)) do
         end
         local theyAcceptRandom = cCsv == '' or now - cAt >= fallback
         if (shared > 0 or (acceptsRandom and theyAcceptRandom)) and shared > bestShared then
-          best, bestDevice, bestMeta, bestShared, bestSharedCsv = candidate, cDevice, cMeta, shared, table.concat(sharedList, ',')
+          best, bestDevice, bestMeta, bestShared, bestSharedCsv, bestAt = candidate, cDevice, cMeta, shared, table.concat(sharedList, ','), cAt
         end
       end
     end
@@ -93,7 +93,7 @@ if best then
   redis.call('SET', p .. ':active:' .. best, sid, 'EX', ttl)
   redis.call('SET', p .. ':active:' .. me, sid, 'EX', ttl)
   redis.call('SADD', p .. ':sessions', sid)
-  return {'matched', sid, best, bestDevice, bestMeta, bestSharedCsv}
+  return {'matched', sid, best, bestDevice, bestMeta, bestSharedCsv, tostring(now - bestAt)}
 end
 
 redis.call('ZADD', queue, 'NX', enqueuedAt, me)

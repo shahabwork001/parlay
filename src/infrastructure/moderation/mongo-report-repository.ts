@@ -1,12 +1,16 @@
 import type { Db } from "mongodb";
 import type { ReportRepository } from "../../application/features/moderation/ports.js";
-import { Report, type ReportState } from "../../domain/moderation/report.js";
+import { Report, type ReportResolution, type ReportState } from "../../domain/moderation/report.js";
 import type { MongoIndexDefinition } from "../persistence/mongo/mongo-indexes.js";
 import { type AggregateDocument, MongoRepository } from "../persistence/mongo/mongo-repository.js";
 
 const COLLECTION = "reports";
 
-type ReportDocument = AggregateDocument & Omit<ReportState, "id" | "version">;
+type ReportDocument = AggregateDocument &
+  Omit<ReportState, "id" | "version" | "escalationReference" | "resolution"> & {
+    escalationReference?: string | null;
+    resolution?: ReportResolution | null;
+  };
 
 export const REPORT_INDEXES: MongoIndexDefinition = {
   collection: COLLECTION,
@@ -64,6 +68,8 @@ export class MongoReportRepository
       tier: report.tier,
       score: report.score,
       escalation: report.escalation,
+      escalationReference: report.escalationReference,
+      resolution: report.resolution,
       createdAt: report.createdAt,
       scoredAt: report.scoredAt,
       resolvedAt: report.resolvedAt,
@@ -72,6 +78,12 @@ export class MongoReportRepository
 
   protected toAggregate(document: ReportDocument): Report {
     const { _id, ...state } = document;
-    return Report.restore({ ...state, id: _id });
+    // Reports stored before Phase 6 have no resolution fields.
+    return Report.restore({
+      ...state,
+      escalationReference: state.escalationReference ?? null,
+      resolution: state.resolution ?? null,
+      id: _id,
+    });
   }
 }

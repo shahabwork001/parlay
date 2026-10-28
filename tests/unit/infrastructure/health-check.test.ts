@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { turnTcpEndpoint } from "../../../src/infrastructure/health/remote-health-checks.js";
 import {
   type HealthCheck,
   type HealthStatus,
@@ -43,5 +44,18 @@ describe("runHealthChecks", () => {
     const report = await runHealthChecks([hanging], 50);
 
     expect(report.entries[0]).toMatchObject({ status: "Unhealthy", description: "Timed out after 50 ms." });
+  });
+});
+
+describe("turnTcpEndpoint", () => {
+  it("prefers the TCP transport URL and defaults the port", () => {
+    expect(
+      turnTcpEndpoint(["turn:a.example:3478?transport=udp", "turn:b.example:5349?transport=tcp"]),
+    ).toEqual({
+      host: "b.example",
+      port: 5349,
+    });
+    expect(turnTcpEndpoint(["turns:relay.example"])).toEqual({ host: "relay.example", port: 3478 });
+    expect(turnTcpEndpoint([])).toBeNull();
   });
 });

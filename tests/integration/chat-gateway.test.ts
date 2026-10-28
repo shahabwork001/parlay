@@ -108,6 +108,7 @@ describe("ChatGateway over Socket.IO", () => {
         () => new Date(),
       ),
       policy: moderation.policy,
+      matchStats: { recordMatch: () => Promise.resolve() },
       logger: silentLogger,
       retryIntervalMs: 100,
       presenceIntervalMs: 1000,

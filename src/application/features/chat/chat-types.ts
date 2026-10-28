@@ -41,7 +41,8 @@ export interface ChatSession {
 }
 
 export type JoinResult =
-  | { readonly status: "matched"; readonly session: ChatSession }
+  /** `waitedMs`: how long the partner who was waiting (the caller) had been in the queue. */
+  | { readonly status: "matched"; readonly session: ChatSession; readonly waitedMs: number }
   | { readonly status: "queued" }
   | { readonly status: "in_session"; readonly sessionId: string };
 

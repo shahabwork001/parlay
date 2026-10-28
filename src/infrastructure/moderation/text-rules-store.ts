@@ -1,5 +1,5 @@
 import type { Collection, Db } from "mongodb";
-import type { TextRulesProvider } from "../../application/features/moderation/ports.js";
+import type { TextRulesRepository } from "../../application/features/moderation/ports.js";
 import { DEFAULT_TEXT_RULES, type TextRules } from "../../domain/moderation/text-rules.js";
 
 const COLLECTION = "moderation_rules";
@@ -11,7 +11,7 @@ type TextRulesDocument = TextRules & { _id: string; updatedAt: Date };
  * Text rules from MongoDB (seeded with the defaults on first read), cached in process for a short
  * time so every message does not hit the database. Edits take effect within `refreshMs`.
  */
-export class MongoTextRulesProvider implements TextRulesProvider {
+export class MongoTextRulesProvider implements TextRulesRepository {
   readonly #rules: Collection<TextRulesDocument>;
   #cached: { rules: TextRules; loadedAt: number } | null = null;
 
@@ -38,5 +38,15 @@ export class MongoTextRulesProvider implements TextRulesProvider {
     } = document ?? { ...DEFAULT_TEXT_RULES, _id: "", updatedAt: null };
     this.#cached = { rules, loadedAt: this.now() };
     return rules;
+  }
+
+  /** Saves the rules; this instance uses them at once, other processes within `refreshMs`. */
+  async save(rules: TextRules): Promise<void> {
+    await this.#rules.replaceOne(
+      { _id: TEXT_RULES_ID },
+      { ...rules, updatedAt: new Date() },
+      { upsert: true },
+    );
+    this.#cached = { rules, loadedAt: this.now() };
   }
 }
