@@ -26,9 +26,10 @@ Session principal roles.
 
 ## Current state (what works, what's missing, known issues)
 
-Roles and permissions are available to the UI (account page shows roles). Admin route guards are built with the admin panel in Phase 6.
+Done: the admin area mirrors the role map (`src/lib/permissions.ts`) to show only permitted sections and actions; the API authorises every request again.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
 - 2026-10-25: Implemented in Phase 2 (identity).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

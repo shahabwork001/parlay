@@ -1,6 +1,6 @@
 # Feature: Staff management
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Invite staff, assign roles, enforce 2FA.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+Route /admin/staff; `StaffAdmin`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+TanStack Query `admin/staff`.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 6.
+Done: add staff by email with role checkboxes, edit or remove roles, 2FA status per member.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

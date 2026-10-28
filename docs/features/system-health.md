@@ -1,6 +1,6 @@
 # Feature: System health
 
-Status: In progress
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Status of MongoDB, Redis, RabbitMQ, TURN and worker queues.
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+Routes /status (public) and /admin/system; `SystemHealth`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+TanStack Query `admin/system`, polled every 15 s.
 
 ## Business rules
 
@@ -25,8 +25,10 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Public /status page polls /health/ready every 15s with loading, error/retry and per-component states. Admin system-health view comes in Phase 6.
+Done: dependency cards and a queue table that highlights dead letters and queues without consumers.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-25: Public status page (Phase 1).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

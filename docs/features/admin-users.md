@@ -1,6 +1,6 @@
 # Feature: Users and devices
 
-Status: Not started
+Status: Done
 Last updated: 2026-10-25
 
 ## Purpose
@@ -13,11 +13,11 @@ Search users and devices, view details, session metadata, bans, reports and subs
 
 ## API endpoints / hub methods / events involved
 
-To be defined when implementation starts (planned for Phase 6).
+Routes /admin/users, /admin/users/[id]; `UsersAdmin`, `UserDetailView`
 
 ## Data model
 
-To be defined when implementation starts (planned for Phase 6).
+TanStack Query `admin/users/...`, `admin/user/{id}`.
 
 ## Business rules
 
@@ -25,8 +25,9 @@ To be defined when implementation starts (planned for Phase 6).
 
 ## Current state (what works, what's missing, known issues)
 
-Not started. Planned for Phase 6.
+Done: search table, detail page with stats, sign-ins table, ban history and a manual ban form.
 
 ## Changelog
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
+- 2026-10-28: Implemented in Phase 6 (admin panel).

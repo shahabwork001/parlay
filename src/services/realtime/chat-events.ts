@@ -62,6 +62,8 @@ export interface ServerToClientEvents {
   "media:state": (payload: MediaState) => void;
   /** Sent right before the server disconnects a banned person. */
   "moderation:banned": (payload: Record<string, never>) => void;
+  /** A moderator warning after an upheld report; the person keeps chatting. */
+  "moderation:warning": (payload: { readonly message: string }) => void;
 }
 
 export interface ClientToServerEvents {

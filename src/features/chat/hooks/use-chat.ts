@@ -100,6 +100,7 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       socket.on("rtc:signal", (signal) => optionsRef.current.onSignal?.(signal));
       socket.on("media:state", (state) => optionsRef.current.onMediaState?.(state));
       socket.on("moderation:banned", showBan);
+      socket.on("moderation:warning", ({ message }) => useChatStore.getState().setNotice(message));
     });
 
     return () => {

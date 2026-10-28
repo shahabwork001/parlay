@@ -37,6 +37,7 @@ export function VideoChatScreen() {
   const unavailableReason = useChatStore((state) => state.unavailableReason);
   const reportableSessionId = useChatStore((state) => state.reportableSessionId);
   const endedReason = useChatStore((state) => state.endedReason);
+  const notice = useChatStore((state) => state.notice);
   const [started, setStarted] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const canSkip = phase === "chatting" || phase === "ended";
@@ -92,6 +93,11 @@ export function VideoChatScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
+        {notice ? (
+          <Alert role="alert">
+            <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        ) : null}
         {call.screening === "flagged" ? (
           <Alert variant="destructive" role="alert">
             <AlertDescription>

@@ -13,7 +13,7 @@ import { useSession } from "../hooks/use-session";
 import { useSignOut } from "../hooks/use-sign-out";
 
 export function AccountMenu() {
-  const { isRestoring, isSignedIn } = useSession();
+  const { isRestoring, isSignedIn, isStaff } = useSession();
   const signOut = useSignOut();
 
   if (isRestoring) return <Skeleton className="h-8 w-16" aria-label="Loading account" />;
@@ -40,6 +40,11 @@ export function AccountMenu() {
         <DropdownMenuItem asChild>
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
+        {isStaff ? (
+          <DropdownMenuItem asChild>
+            <Link href="/admin">Admin</Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem onSelect={() => void signOut()}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

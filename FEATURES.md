@@ -28,14 +28,14 @@ Status values: Not started, In progress, Done, Blocked.
 | Minor safety escalation              | Done        | FE + BE | 5     | [docs/features/minor-safety.md](docs/features/minor-safety.md)                     |
 | No chat recording                    | Done        | FE + BE | 5     | [docs/features/no-chat-recording.md](docs/features/no-chat-recording.md)           |
 | Ban and appeal experience            | Done        | FE + BE | 5     | [docs/features/ban-appeal.md](docs/features/ban-appeal.md)                         |
-| Admin dashboard                      | Not started | FE + BE | 6     | [docs/features/admin-dashboard.md](docs/features/admin-dashboard.md)               |
-| Moderation queue                     | Not started | FE + BE | 6     | [docs/features/admin-moderation-queue.md](docs/features/admin-moderation-queue.md) |
-| Users and devices                    | Not started | FE + BE | 6     | [docs/features/admin-users.md](docs/features/admin-users.md)                       |
-| Bans and appeals admin               | Not started | FE + BE | 6     | [docs/features/admin-bans-appeals.md](docs/features/admin-bans-appeals.md)         |
-| Word lists and rules                 | Not started | FE + BE | 6     | [docs/features/admin-rules.md](docs/features/admin-rules.md)                       |
-| Staff management                     | Not started | FE + BE | 6     | [docs/features/admin-staff.md](docs/features/admin-staff.md)                       |
-| Audit log                            | Not started | FE + BE | 6     | [docs/features/audit-log.md](docs/features/audit-log.md)                           |
-| System health                        | In progress | FE + BE | 6     | [docs/features/system-health.md](docs/features/system-health.md)                   |
+| Admin dashboard                      | Done        | FE + BE | 6     | [docs/features/admin-dashboard.md](docs/features/admin-dashboard.md)               |
+| Moderation queue                     | Done        | FE + BE | 6     | [docs/features/admin-moderation-queue.md](docs/features/admin-moderation-queue.md) |
+| Users and devices                    | Done        | FE + BE | 6     | [docs/features/admin-users.md](docs/features/admin-users.md)                       |
+| Bans and appeals admin               | Done        | FE + BE | 6     | [docs/features/admin-bans-appeals.md](docs/features/admin-bans-appeals.md)         |
+| Word lists and rules                 | Done        | FE + BE | 6     | [docs/features/admin-rules.md](docs/features/admin-rules.md)                       |
+| Staff management                     | Done        | FE + BE | 6     | [docs/features/admin-staff.md](docs/features/admin-staff.md)                       |
+| Audit log                            | Done        | FE + BE | 6     | [docs/features/audit-log.md](docs/features/audit-log.md)                           |
+| System health                        | Done        | FE + BE | 6     | [docs/features/system-health.md](docs/features/system-health.md)                   |
 | Plans and subscriptions              | Not started | FE + BE | 7     | [docs/features/plans-subscriptions.md](docs/features/plans-subscriptions.md)       |
 | Premium features                     | Not started | FE + BE | 7     | [docs/features/premium-features.md](docs/features/premium-features.md)             |
 | Feature flags and site configuration | Not started | FE + BE | 7     | [docs/features/feature-flags.md](docs/features/feature-flags.md)                   |

@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (Phase 6: admin panel)
+
+- Admin area at `/admin` (staff with a two-factor session only), navigation filtered by role: dashboard with live numbers and charts, moderation queue with review pane, gated evidence (blurred until revealed), keyboard shortcuts (J, K, D, W, B) and minor-safety escalation form, bans and appeals, users with sign-in history and manual bans, word lists editor, staff roles, audit log, system health.
+- Admin link in the account menu for staff; moderator warnings shown in text and video chat.
+- ADR 0009. Tests: report review and permission map; Playwright end-to-end flow (report, moderator bans from the queue, banned person blocked) and the staff sign-in gate.
+
+### Fixed
+
+- Phase 5 docs had lost table rows (routes, repositories, services); restored.
+
 ### Added (Phase 5: moderation and safety)
 
 - Report dialog in text and video chat: 11 categories, optional note, clear disclosure, minor-safety notice; video reports attach a 320 px still of the partner taken when Report is pressed.

@@ -1,6 +1,6 @@
 # Architecture
 
-Status: Phases 1-5 implemented. Sections marked _planned_ describe the target design.
+Status: Phases 1-6 implemented. Sections marked _planned_ describe the target design.
 
 ## Layers
 
@@ -59,3 +59,7 @@ sequenceDiagram
 ## Video call flow (implemented in Phase 4)
 
 After `match:found` both sides create an RTCPeerConnection (`PeerSession`) with ICE servers from `RtcRepository` (cached 30 minutes; relay-only when the privacy setting is on). Perfect negotiation: the callee is polite, so offer collisions resolve without deadlock; signals that arrive before the peer exists are buffered. SDP, candidates and mute/camera state travel over the socket as `rtc:signal` and `media:state`. ICE restarts after 3 s in `disconnected` or on `failed`. Stats are sampled every 2 s for the quality indicator. Device switches use `replaceTrack`, so they never renegotiate.
+
+## Admin area (implemented in Phase 6)
+
+`(admin)/admin` is a separate route group with its own layout. `AdminShell` admits only staff on a two-factor session and filters navigation with `src/lib/permissions.ts` (a mirror of the backend role map; the API re-checks every call). All data comes from `AdminRepository` through TanStack Query; the dashboard, queue and system view poll. See [ADR 0009](decisions/0009-admin-client-area.md).

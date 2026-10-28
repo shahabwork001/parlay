@@ -17,3 +17,9 @@ export type ReportCategory = (typeof REPORT_CATEGORIES)[number]["value"];
 
 export const isMinorSafety = (category: ReportCategory) =>
   category === "appears-minor" || category === "child-sexual-content";
+
+const LABELS = new Map<string, string>(
+  REPORT_CATEGORIES.map((option) => [option.value, option.label]),
+);
+
+export const categoryLabel = (value: string): string => LABELS.get(value) ?? value;

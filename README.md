@@ -53,13 +53,15 @@ docker compose up -d --build   # http://localhost:3000
 
 ## Routes
 
-| Route                                                                         | Description                                                                            |
-| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `/`                                                                           | Landing page: value proposition, ground rules, start panel with interests and language |
-| `/status`                                                                     | Public system status (polls the API readiness endpoint)                                |
-| `/terms`, `/privacy`, `/guidelines`, `/safety`, `/faq`, `/contact`            | Static legal and help pages                                                            |
-| `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Account flows                                                                          |
-| `/account`                                                                    | Email, Terms status and two-factor authentication                                      |
-| `/chat/text`                                                                  | Random text chat (requires an accepted Terms gate)                                     |
-| `/chat/video`                                                                 | Random video chat with camera preflight                                                |
-| $1                                                                            | `/banned`                                                                              | Ban notice with reason, duration and appeal form |
+| Route                                                                         | Description                                                                                              |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `/`                                                                           | Landing page: value proposition, ground rules, start panel with interests and language                   |
+| `/status`                                                                     | Public system status (polls the API readiness endpoint)                                                  |
+| `/terms`, `/privacy`, `/guidelines`, `/safety`, `/faq`, `/contact`            | Static legal and help pages                                                                              |
+| `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` | Account flows                                                                                            |
+| `/account`                                                                    | Email, Terms status and two-factor authentication                                                        |
+| `/chat/text`                                                                  | Random text chat (requires an accepted Terms gate)                                                       |
+| `/chat/video`                                                                 | Random video chat with camera preflight                                                                  |
+| `/settings`                                                                   | Theme, default camera and microphone, relay-only video, match sound                                      |
+| `/banned`                                                                     | Ban notice with reason, duration and appeal form                                                         |
+| `/admin` ...                                                                  | Staff area (dashboard, queue, bans, users, rules, staff, audit, system); staff with a two-factor session |
