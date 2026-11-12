@@ -109,11 +109,11 @@ export class Ban extends AggregateRoot {
     this.#appeal = state.appeal;
   }
 
-  static issue(ban: NewBan, now: Date): Ban {
+  static issue(ban: NewBan, now: Date, id: EntityId = newEntityId()): Ban {
     if (ban.targets.length === 0) throw new Error("A ban needs at least one target.");
     const durationMs = ban.durationMs ?? null;
     return new Ban({
-      id: newEntityId(),
+      id,
       version: 0,
       targets: dedupe(ban.targets),
       mode: ban.mode,

@@ -71,6 +71,7 @@ export function createSocketServer(httpServer: HttpServer, options: SocketServer
   const io: ChatServer = new Server(httpServer, {
     cors: { origin: [...options.corsAllowedOrigins], credentials: true },
     adapter: createAdapter(publisher, subscriber),
+    transports: ["websocket"],
     pingInterval: 10_000,
     pingTimeout: 10_000,
     maxHttpBufferSize: 64 * 1024,

@@ -3,6 +3,7 @@ import { AccountMenu } from "@/features/auth/components/account-menu";
 import { ThemeToggle } from "./theme-toggle";
 
 const NAV_LINKS = [
+  { href: "/pricing", label: "Plus" },
   { href: "/safety", label: "Safety" },
   { href: "/guidelines", label: "Guidelines" },
   { href: "/faq", label: "FAQ" },

@@ -71,6 +71,13 @@ describe("admin read model", () => {
     const open = await readModel.listReports({ status: "open", reportedSubjectId: "target", page });
     expect(open.items.map((item) => item.id)).toEqual([urgent.id, old.id, recentSpam.id]);
     expect(open.items[0]).toMatchObject({ tier: "critical", escalation: "required", hasEvidence: false });
+    const oldestFirst = await readModel.listReports({
+      status: "open",
+      sort: "oldest",
+      reportedSubjectId: "target",
+      page,
+    });
+    expect(oldestFirst.items[0]?.id).toBe(old.id);
     const done = await readModel.listReports({ status: "resolved", page });
     expect(done.items.find((item) => item.id === resolved.id)?.outcome).toBe("warned");
 
@@ -124,6 +131,9 @@ describe("admin read model", () => {
     expect((await readModel.searchUsers(staff.id, page)).items[0]?.email).toBe(staff.email);
     expect((await readModel.searchUsers("(unbalanced[", page)).totalCount).toBe(0);
     expect((await readModel.listStaff()).map((item) => item.id)).toContain(staff.id);
+    const byEmail = await readModel.searchUsers("", page, "email");
+    const emails = byEmail.items.map((item) => item.email);
+    expect(emails).toEqual([...emails].sort());
 
     const tokens = new MongoRefreshTokenStore(infrastructure.database, 30 * 24 * HOUR);
     const issued = await tokens.issue({
@@ -152,6 +162,8 @@ describe("admin read model", () => {
 
     const entries = await readModel.listAudit({ targetId: target, page });
     expect(entries.items.map((entry) => entry.action)).toEqual(["report.decided", "ban.lifted"]);
+    const oldest = await readModel.listAudit({ targetId: target, order: "oldest", page });
+    expect(oldest.items.map((entry) => entry.action)).toEqual(["ban.lifted", "report.decided"]);
     expect((await readModel.listAudit({ targetId: target, action: "ban.lifted", page })).totalCount).toBe(1);
   });
 

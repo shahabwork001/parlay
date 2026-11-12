@@ -55,12 +55,16 @@ export type TextModeration =
  * words become bullets of the same length; links, phone numbers and social handles are replaced.
  * In strict mode (low-trust and shadow pools) masked words also reject the message.
  */
-export function moderateText(raw: string, rules: TextRules, options: { strict: boolean }): TextModeration {
+export function moderateText(
+  raw: string,
+  rules: TextRules,
+  options: { strict: boolean; adult?: boolean },
+): TextModeration {
   const capped = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
   if (!capped) return { status: "empty" };
 
   const blocked = new Set(rules.blockedWords.map(normaliseWord));
-  const maskedWords = new Set(rules.maskedWords.map(normaliseWord));
+  const maskedWords = new Set(options.adult ? [] : rules.maskedWords.map(normaliseWord));
   const words = capped.match(/[\p{L}\p{N}@$]+/gu) ?? [];
   if (words.some((word) => blocked.has(normaliseWord(word)))) return { status: "blocked" };
   if (options.strict && words.some((word) => maskedWords.has(normaliseWord(word))))

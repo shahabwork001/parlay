@@ -59,9 +59,12 @@ export async function createInfrastructure(
     serviceName,
   );
 
-  applyMongoIndexes(database, MONGO_INDEXES, logger).catch((error: unknown) => {
-    logger.error({ err: error }, "Applying Mongo indexes failed");
-  });
+  try {
+    await applyMongoIndexes(database, MONGO_INDEXES, logger);
+  } catch (error) {
+    await Promise.allSettled([rabbitMq.close(), redis.quit(), mongoClient.close()]);
+    throw error;
+  }
 
   return {
     database,

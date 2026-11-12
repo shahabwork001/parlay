@@ -1,5 +1,7 @@
 # Features
 
+Repository/delivery preparation (2026-11-12): root monorepo preserves original histories, development is on `dev`, and Jenkins delivery is restricted to non-PR `main` builds. Remote publication/settings and live Jenkins execution remain unconfigured. See [setup](../docs/GITHUB_JENKINS.md).
+
 Single source of truth for the state of the backend. Update this table and the linked feature doc with every change.
 
 Status values: Not started, In progress, Done, Blocked, Deferred (decided not to build for now).
@@ -42,3 +44,15 @@ Status values: Not started, In progress, Done, Blocked, Deferred (decided not to
 | Payments                             | Deferred | BE      | 7     | [docs/features/payments.md](docs/features/payments.md)                             |
 | Premium features                     | Deferred | FE + BE | 7     | [docs/features/premium-features.md](docs/features/premium-features.md)             |
 | Feature flags and site configuration | Done     | FE + BE | 7     | [docs/features/feature-flags.md](docs/features/feature-flags.md)                   |
+
+## Product transformation
+
+Interaction modes: Phase 1 implemented; verification-required access remains unavailable pending Phase 2. See [interaction modes](docs/features/interaction-modes.md) and the workspace [roadmap](../docs/PRODUCT_ROADMAP.md).
+
+## Free MVP priorities (supersede monetization expansion)
+
+- Core reliability: report recovery, idempotent trust effects, required indexes before startup and deliberate WebSocket transport implemented in this increment; real-network launch validation remains open.
+- Premium: pricing preview and private opt-in waitlist; billing foundations retained but live payments deferred and disabled.
+- Age assurance: durable provider/status foundation with ADULT_CHAT_ENABLED=false; no approved provider, no fake verified age.
+- Product insights: first-party UTC activity aggregates, sampled p95 wait, self-reported RTC setup results and waitlist conversion in the admin dashboard.
+  See [free MVP](docs/features/free-mvp.md) and the workspace roadmap.

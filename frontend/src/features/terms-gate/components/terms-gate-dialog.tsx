@@ -44,8 +44,9 @@ export function TermsGateDialog({
         <DialogHeader>
           <DialogTitle>Before you start</DialogTitle>
           <DialogDescription>
-            Parley is for adults only. Conversations are with strangers and are moderated, but never
-            recorded.
+            Parley is for adults only. This age confirmation is not verified age. General Chat uses
+            nudity screening; reports can retain a snapshot and recent messages. Calls are not
+            recorded by Parley.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">

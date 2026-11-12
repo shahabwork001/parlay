@@ -94,7 +94,11 @@ describe("site routes", () => {
     expect(siteConfig.config).toMatchObject({ ...update, updatedBy: "staff-Admin" });
     expect(audit.entries[0]).toMatchObject({
       action: "site.updated",
-      metadata: { maintenance: true, announcement: true, changedFlags: "registration" },
+      metadata: {
+        maintenance: "false -> true",
+        announcement: "none -> New: video chat is here.",
+        changedFlags: "registration",
+      },
     });
     await request(app)
       .put("/api/v1/admin/site")

@@ -11,6 +11,7 @@ interface TrustDocument {
   _id: string;
   score: number;
   updatedAt: Date;
+  effects?: string[];
 }
 
 export const TRUST_INDEXES: MongoIndexDefinition = {
@@ -55,7 +56,7 @@ export class CachedTrustStore implements TrustStore {
     return Math.min(...scores);
   }
 
-  async adjust(keys: readonly string[], delta: number): Promise<void> {
+  async adjust(keys: readonly string[], delta: number, effectId?: string): Promise<void> {
     const pipeline = this.redis.pipeline();
     for (const key of keys) {
       // Clamp inside the update so concurrent adjustments never push a score out of range.
@@ -67,16 +68,29 @@ export class CachedTrustStore implements TrustStore {
               score: {
                 $min: [
                   TRUST.max,
-                  { $max: [TRUST.min, { $add: [{ $ifNull: ["$score", TRUST.default] }, delta] }] },
+                  {
+                    $max: [
+                      TRUST.min,
+                      {
+                        $add: [
+                          { $ifNull: ["$score", TRUST.default] },
+                          effectId
+                            ? { $cond: [{ $in: [effectId, { $ifNull: ["$effects", []] }] }, 0, delta] }
+                            : delta,
+                        ],
+                      },
+                    ],
+                  },
                 ],
               },
+              ...(effectId ? { effects: { $setUnion: [{ $ifNull: ["$effects", []] }, [effectId]] } } : {}),
               updatedAt: this.now(),
             },
           },
         ],
         { upsert: true, returnDocument: "after" },
       );
-      if (updated) pipeline.set(cacheKey(key), String(updated.score), "EX", CACHE_TTL_SECONDS);
+      if (updated) pipeline.del(cacheKey(key));
     }
     await pipeline.exec();
   }

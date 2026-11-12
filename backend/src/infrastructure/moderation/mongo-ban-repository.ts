@@ -31,6 +31,15 @@ export class MongoBanRepository extends MongoRepository<Ban, BanDocument> implem
     super(database, COLLECTION);
   }
 
+  override async add(ban: Ban): Promise<void> {
+    ban.version = 1;
+    await this.collection.updateOne(
+      { _id: ban.id },
+      { $setOnInsert: this.toDocument(ban) },
+      { upsert: true },
+    );
+  }
+
   async findActive(targets: readonly BanTarget[], now: Date): Promise<Ban[]> {
     if (targets.length === 0) return [];
     const documents = await this.collection

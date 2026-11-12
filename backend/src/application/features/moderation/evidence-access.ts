@@ -73,7 +73,7 @@ export class AuditBanIssued implements IntegrationEventHandler<BanIssuedPayload>
   async handle(event: IntegrationEvent<BanIssuedPayload>): Promise<void> {
     const ban = event.payload;
     await this.audit.record({
-      id: event.eventId,
+      id: `ban-issued:${ban.banId}`,
       actor:
         ban.source === "automatic" ? SYSTEM_ACTOR : { kind: "staff", subjectId: ban.createdBy, roles: [] },
       action: "ban.issued",

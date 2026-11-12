@@ -11,18 +11,23 @@ import { Label } from "@/components/ui/label";
 import { errorMessage } from "@/lib/http/error-messages";
 import { adminRepository, type UserDetail } from "@/repositories/admin-repository";
 import { BAN_REASON_LABELS, formatDateTime, formatRelative } from "../format";
-import { Mono, PageHeader, Pagination, QueryView, Stat } from "./admin-ui";
+import { Mono, PageHeader, Pagination, QueryView, SortHeader, Stat } from "./admin-ui";
 import { useAdminPermissions } from "./admin-shell";
 import { BAN_DURATIONS } from "./ban-dialog";
 import { BanList } from "./bans-admin";
+import { pageFrom, useUrlState } from "../hooks/use-url-state";
+
+type UserSort = "newest" | "oldest" | "email";
+const USER_DEFAULTS = { q: "", sort: "newest", page: "1" };
 
 export function UsersAdmin() {
-  const [input, setInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [url, setUrl] = useUrlState(USER_DEFAULTS);
+  const [input, setInput] = useState(url.q);
+  const sort = url.sort as UserSort;
+  const page = pageFrom(url.page);
   const query = useQuery({
-    queryKey: ["admin", "users", search, page],
-    queryFn: ({ signal }) => adminRepository.searchUsers(search, page, signal),
+    queryKey: ["admin", "users", url.q, sort, page],
+    queryFn: ({ signal }) => adminRepository.searchUsers({ q: url.q, sort, page }, signal),
     placeholderData: keepPreviousData,
   });
 
@@ -37,8 +42,7 @@ export function UsersAdmin() {
         className="flex max-w-lg gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          setSearch(input.trim());
-          setPage(1);
+          setUrl({ q: input.trim(), page: "1" });
         }}
       >
         <Label htmlFor="user-search" className="sr-only">
@@ -63,18 +67,26 @@ export function UsersAdmin() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                   <tr>
-                    <th scope="col" className="px-3 py-2 font-medium">
-                      Email
-                    </th>
+                    <SortHeader
+                      label="Email"
+                      direction={sort === "email" ? "ascending" : null}
+                      onSort={() => setUrl({ sort: "email", page: "1" })}
+                    />
                     <th scope="col" className="px-3 py-2 font-medium">
                       Roles
                     </th>
                     <th scope="col" className="px-3 py-2 font-medium">
                       Status
                     </th>
-                    <th scope="col" className="px-3 py-2 font-medium">
-                      Joined
-                    </th>
+                    <SortHeader
+                      label="Joined"
+                      direction={
+                        sort === "newest" ? "descending" : sort === "oldest" ? "ascending" : null
+                      }
+                      onSort={() =>
+                        setUrl({ sort: sort === "newest" ? "oldest" : "newest", page: "1" })
+                      }
+                    />
                   </tr>
                 </thead>
                 <tbody>
@@ -101,7 +113,11 @@ export function UsersAdmin() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={data.page} totalPages={data.totalPages} onPage={setPage} />
+            <Pagination
+              page={data.page}
+              totalPages={data.totalPages}
+              onPage={(next) => setUrl({ page: String(next) })}
+            />
           </div>
         )}
       </QueryView>

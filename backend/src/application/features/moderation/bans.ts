@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from "uuid";
 import type { EntityId } from "../../../domain/common/entity.js";
 import { fail, ok, type Result } from "../../../domain/common/result.js";
 import { Ban, type BanReason, type BanTarget, type NewBan } from "../../../domain/moderation/ban.js";
@@ -26,13 +27,20 @@ export class BanService {
     private readonly clock: Clock,
   ) {}
 
-  async issue(request: NewBan): Promise<Ban> {
+  async issue(request: NewBan, id?: EntityId): Promise<Ban> {
     const now = this.clock();
-    const ban = Ban.issue(request, now);
+    let ban = Ban.issue(request, now, id);
     await this.bans.add(ban);
+    ban = (await this.bans.getById(ban.id)) ?? ban;
+    if (!ban.isActive(now)) return ban;
     await this.cache.store(ban, now);
     // Shadow bans are silent: the person keeps chatting, just in the shadow pool from their next search.
     if (ban.mode === "full") await this.enforcer.enforce(ban.targets);
+    await this.publishIssued(ban);
+    return ban;
+  }
+
+  private async publishIssued(ban: Ban): Promise<void> {
     await this.events.publish(BanIssued, {
       banId: ban.id,
       mode: ban.mode,
@@ -42,9 +50,8 @@ export class BanService {
       reportId: ban.reportId,
       targetKinds: ban.targets.map((target) => target.kind),
       expiresAt: ban.expiresAt?.toISOString() ?? null,
-      issuedAt: now.toISOString(),
+      issuedAt: ban.createdAt.toISOString(),
     });
-    return ban;
   }
 
   /** Issues a temporary automatic ban unless the person is already fully banned. */
@@ -54,9 +61,17 @@ export class BanService {
     durationMs: number | null,
     reportId: EntityId | null = null,
   ): Promise<Ban | null> {
-    const cached = await this.cache.lookup(targets, this.clock());
-    if (cached.some((entry) => entry.mode === "full")) return null;
-    return this.issue({ targets, mode: "full", reason, source: "automatic", durationMs, reportId });
+    const existing = (await this.bans.findActive(targets, this.clock())).filter((ban) => ban.mode === "full");
+    if (existing.length) {
+      for (const ban of existing) await this.cache.store(ban, this.clock());
+      await this.enforcer.enforce(targets);
+      for (const ban of existing) await this.publishIssued(ban);
+      return null;
+    }
+    return this.issue(
+      { targets, mode: "full", reason, source: "automatic", durationMs, reportId },
+      reportId ? uuidv5(`${reportId}:${reason}`, uuidv5.URL) : undefined,
+    );
   }
 
   async lift(banId: EntityId, liftedBy: EntityId | null): Promise<Result<Ban>> {

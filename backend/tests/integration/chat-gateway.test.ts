@@ -65,6 +65,7 @@ describe("ChatGateway over Socket.IO", () => {
   let url: string;
   const clients: Client[] = [];
   const site = new MutableSiteConfig();
+  const verifiedAdults = new Set<string>();
   const prefix = `mm-gateway-${randomUUID()}`;
 
   beforeAll(async () => {
@@ -97,6 +98,7 @@ describe("ChatGateway over Socket.IO", () => {
     );
     gateway = new ChatGateway(sockets.io, {
       matchmaker,
+      adultAccess: { isVerifiedAdult: (who) => Promise.resolve(verifiedAdults.has(who.subjectId)) },
       events: infrastructure.eventPublisher,
       // Every test client shares 127.0.0.1, so the network limits must be generous here.
       rateLimiter: new RedisRateLimiter(infrastructure.redis),
@@ -175,6 +177,51 @@ describe("ChatGateway over Socket.IO", () => {
     );
 
     await expect(client(principal({ termsVersion: "2000-01-01" }))).rejects.toThrow("terms.outdated");
+  });
+
+  it("rejects Adult requests without consent or configured age assurance", async () => {
+    const a = await client();
+    const preferences = { mode: "video", interaction: "adult", interests: [], language: "any" };
+    expect(await a.emitWithAck("queue:join", preferences)).toMatchObject({
+      ok: false,
+      error: { code: "adult.consent_required" },
+    });
+    expect(await a.emitWithAck("queue:join", { ...preferences, adultConsent: true })).toMatchObject({
+      ok: false,
+      error: { code: "adult.verification_required" },
+    });
+  });
+
+  it("requires new consent after Adult Next and ignores nudity-only flags in Adult sessions", async () => {
+    const alice = principal({ kind: "user" });
+    const bob = principal({ kind: "user" });
+    verifiedAdults.add(alice.subjectId);
+    verifiedAdults.add(bob.subjectId);
+    const a = await client(alice);
+    const b = await client(bob);
+    const preferences = {
+      mode: "video",
+      interaction: "adult",
+      adultConsent: true,
+      language: "any",
+      interests: [],
+    };
+    const found = once(a, "match:found");
+    await a.emitWithAck("queue:join", preferences);
+    await b.emitWithAck("queue:join", preferences);
+    expect(await found).toMatchObject({ interaction: "adult", safety: { screenNudity: false } });
+    for (let index = 0; index < 3; index += 1)
+      expect(await a.emitWithAck("moderation:flag", { source: "nsfw-screening", score: 0.99 })).toMatchObject(
+        { ok: true },
+      );
+    expect(
+      (await moderation.bans.checkAccess({ ...alice, networkHash: "x", subnetHash: "y" })).status,
+    ).not.toBe("banned");
+    expect(await a.emitWithAck("match:next")).toMatchObject({
+      ok: false,
+      error: { code: "adult.consent_required" },
+    });
+    expect(await matchmaker.activeSession(alice.subjectId)).toBeNull();
   });
 
   it("pairs two people and tells each their role", async () => {
@@ -332,8 +379,8 @@ describe("ChatGateway over Socket.IO", () => {
     ).toBe("banned");
   });
 
-  it("bans automatically after repeated on-device content flags", async () => {
-    const socket = await client();
+  it("bans automatically after repeated on-device content flags in a General session", async () => {
+    const [socket] = await pair();
     const banned = once(socket, "moderation:banned");
     const disconnected = new Promise((resolve) => socket.once("disconnect", resolve));
     const outcomes = [];

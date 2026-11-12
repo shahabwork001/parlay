@@ -13,6 +13,8 @@ interface VideoTileProps {
   muted?: boolean;
   /** Hide the picture (camera off) while keeping audio playing. */
   hidden?: boolean;
+  fit?: "contain" | "cover";
+  controls?: ReactNode;
   children?: ReactNode;
   className?: string;
 }
@@ -23,6 +25,8 @@ export function VideoTile({
   mirrored,
   muted,
   hidden,
+  fit = "contain",
+  controls,
   children,
   className,
 }: VideoTileProps) {
@@ -49,7 +53,8 @@ export function VideoTile({
         playsInline
         muted={muted}
         className={cn(
-          "size-full object-cover",
+          "absolute inset-0 size-full",
+          fit === "cover" ? "object-cover" : "object-contain",
           mirrored && "-scale-x-100",
           (hidden || !stream) && "invisible",
         )}
@@ -62,6 +67,7 @@ export function VideoTile({
       <figcaption className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white">
         {label}
       </figcaption>
+      {controls ? <div className="absolute top-1 right-1 z-20">{controls}</div> : null}
     </figure>
   );
 }

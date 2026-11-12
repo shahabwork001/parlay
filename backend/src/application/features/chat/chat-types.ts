@@ -1,3 +1,8 @@
+export const INTERACTION_MODES = ["general", "adult"] as const;
+export type InteractionMode = (typeof INTERACTION_MODES)[number];
+export const matchmakingPool = (pool: MatchPool, interaction: InteractionMode = "general"): string =>
+  interaction === "adult" ? `adult-${pool}` : pool;
+
 export const CHAT_MODES = ["text", "video"] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];
 
@@ -23,6 +28,9 @@ export interface Participant {
 }
 
 export interface MatchTicket extends Participant {
+  /** Server socket ownership token, never accepted from client payloads. */
+  readonly ownerId?: string;
+  readonly interaction?: InteractionMode;
   readonly mode: ChatMode;
   readonly pool: MatchPool;
   /** ISO 639-1 code or `any`. */
@@ -31,6 +39,7 @@ export interface MatchTicket extends Participant {
 }
 
 export interface ChatSession {
+  readonly interaction?: InteractionMode;
   readonly sessionId: string;
   readonly mode: ChatMode;
   /** The participant who waited longer; creates the WebRTC offer in video mode. */
@@ -44,6 +53,7 @@ export type JoinResult =
   /** `waitedMs`: how long the partner who was waiting (the caller) had been in the queue. */
   | { readonly status: "matched"; readonly session: ChatSession; readonly waitedMs: number }
   | { readonly status: "queued" }
+  | { readonly status: "cancelled" }
   | { readonly status: "in_session"; readonly sessionId: string };
 
 export type EndReason = "skipped" | "left" | "disconnected";

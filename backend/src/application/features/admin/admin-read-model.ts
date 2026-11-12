@@ -33,8 +33,14 @@ export interface ReportSummary {
   readonly createdAt: Date;
 }
 
+export type ReportSort = "priority" | "newest" | "oldest";
+export type UserSort = "newest" | "oldest" | "email";
+export type AuditOrder = "newest" | "oldest";
+
 export interface ReportListQuery {
   readonly status: "open" | "resolved" | "all";
+  /** Default: priority for open reports, newest otherwise. */
+  readonly sort?: ReportSort;
   readonly tier?: PriorityTier;
   readonly reportedSubjectId?: string;
   readonly page: PageRequest;
@@ -89,6 +95,7 @@ export interface AuditListQuery {
   readonly action?: string;
   readonly actorId?: string;
   readonly targetId?: string;
+  readonly order?: AuditOrder;
   readonly page: PageRequest;
 }
 
@@ -103,7 +110,7 @@ export interface AdminReadModel {
   /** Reports filed by the subject, and how many of them were dismissed. */
   filedCounts(subjectId: string): Promise<{ total: number; dismissed: number }>;
   listBans(query: BanListQuery, now: Date): Promise<PagedResult<BanSummary>>;
-  searchUsers(query: string, page: PageRequest): Promise<PagedResult<UserSummary>>;
+  searchUsers(query: string, page: PageRequest, sort?: UserSort): Promise<PagedResult<UserSummary>>;
   userSessions(userId: string, now: Date): Promise<SessionSummary[]>;
   listStaff(): Promise<UserSummary[]>;
   listAudit(query: AuditListQuery): Promise<PagedResult<StoredAuditEntry>>;

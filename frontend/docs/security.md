@@ -17,14 +17,15 @@ Living document; Phase 8 performs the full review.
 
 ## OWASP notes (frontend)
 
-| Risk                    | Mitigation                                                            | Status            |
-| ----------------------- | --------------------------------------------------------------------- | ----------------- |
-| XSS                     | React escaping; no `dangerouslySetInnerHTML` with user data; CSP      | Done              |
-| Broken access control   | Admin route guards (UX only; the API enforces permissions)            | Planned (Phase 6) |
-| Token theft             | Access token kept in memory only; refresh token in an httpOnly cookie | Done              |
-| Open redirect           | Post-login `next` accepts only same-origin relative paths             | Done              |
-| Clickjacking            | `frame-ancestors 'none'`, `X-Frame-Options: DENY`                     | Done              |
-| Vulnerable dependencies | `npm audit` in CI, lockfile committed                                 | Partial           |
+| Risk                     | Mitigation                                                                                                  | Status |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- | ------ |
+| XSS                      | React escaping everywhere; no `dangerouslySetInnerHTML`; evidence images are data URLs from the API; CSP    | Done   |
+| Broken access control    | The admin area hides what the role cannot do (`src/lib/permissions.ts`); the API enforces every permission  | Done   |
+| Token theft              | Access token in memory only; refresh token in an httpOnly cookie                                            | Done   |
+| Open redirect            | Post-login `next` accepts only same-origin relative paths                                                   | Done   |
+| Clickjacking             | `frame-ancestors 'none'`, `X-Frame-Options: DENY`                                                           | Done   |
+| Vulnerable dependencies  | `npm audit --omit=dev` clean (2026-10-28); build tools (shadcn CLI) are devDependencies; lockfile committed | Done   |
+| Sensitive data in caches | Staff data is never rendered on the server; admin responses are `no-store`                                  | Done   |
 
 ## Privacy
 

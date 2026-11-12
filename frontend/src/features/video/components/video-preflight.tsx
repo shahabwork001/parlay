@@ -76,8 +76,14 @@ export function VideoPreflight({
   }
 
   return (
-    <div className="mx-auto grid w-full max-w-4xl flex-1 content-center gap-8 px-4 py-8 md:grid-cols-[1fr_18rem]">
-      <VideoTile stream={stream} label="Your camera" mirrored muted className="aspect-video">
+    <div className="mx-auto grid w-full max-w-4xl flex-1 content-start gap-5 px-4 py-4 md:grid-cols-[1fr_18rem] md:content-center md:gap-8 md:py-8">
+      <VideoTile
+        stream={stream}
+        label="Your camera"
+        mirrored
+        muted
+        className="aspect-[3/4] max-h-[50dvh] w-full md:aspect-video md:max-h-none"
+      >
         {state.status === "ready" ? null : "Waiting for camera access"}
       </VideoTile>
       <div className="flex flex-col gap-5">

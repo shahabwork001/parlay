@@ -1,3 +1,4 @@
+import type { Redis } from "ioredis";
 import type { Collection, Db } from "mongodb";
 import type { BlockRecord, BlockRepository } from "../../../application/features/chat/blocks.js";
 import type { MongoIndexDefinition } from "./mongo-indexes.js";
@@ -22,6 +23,19 @@ export class MongoBlockRepository implements BlockRepository {
 
   constructor(database: Db) {
     this.#blocks = database.collection<BlockDocument>(COLLECTION);
+  }
+
+  async restore(redis: Redis, prefix = "mm"): Promise<number> {
+    let count = 0;
+    for await (const block of this.#blocks.find()) {
+      await redis.sadd(
+        `${prefix}:blocks:${block.blockerSubjectId}`,
+        block.blockedSubjectId,
+        block.blockedDeviceId,
+      );
+      count += 1;
+    }
+    return count;
   }
 
   async record(block: BlockRecord): Promise<void> {

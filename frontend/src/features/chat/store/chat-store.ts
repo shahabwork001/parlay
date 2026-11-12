@@ -21,6 +21,8 @@ export interface ChatMessage {
 
 interface ChatState {
   phase: ChatPhase;
+  interaction: "general" | "adult";
+  screenNudity: boolean;
   sessionId: string | null;
   /** The latest chat, kept after it ends so it can still be reported. */
   reportableSessionId: string | null;
@@ -52,6 +54,8 @@ interface ChatState {
 
 const initial = {
   phase: "connecting" as ChatPhase,
+  interaction: "general" as const,
+  screenNudity: true,
   sessionId: null,
   reportableSessionId: null,
   nsfwThreshold: DEFAULT_NSFW_THRESHOLD,
@@ -71,6 +75,8 @@ export const useChatStore = create<ChatState>()((set) => ({
   searching: () =>
     set({
       phase: "searching",
+      interaction: "general" as const,
+      screenNudity: true,
       sessionId: null,
       reportableSessionId: null,
       role: null,
@@ -85,6 +91,8 @@ export const useChatStore = create<ChatState>()((set) => ({
       sessionId: match.sessionId,
       reportableSessionId: match.sessionId,
       nsfwThreshold: match.safety.nsfwThreshold,
+      interaction: match.interaction ?? "general",
+      screenNudity: match.interaction !== "adult" || match.safety.screenNudity !== false,
       role: match.role,
       sharedInterests: match.sharedInterests,
       messages: [],
@@ -99,6 +107,8 @@ export const useChatStore = create<ChatState>()((set) => ({
             phase: "ended",
             endedReason: reason,
             partnerTyping: false,
+            interaction: "general" as const,
+            screenNudity: true,
             sessionId: null,
             role: null,
           }

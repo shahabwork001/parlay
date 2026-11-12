@@ -1,9 +1,9 @@
 /**
- * Idempotent seed: creates the first SuperAdmin if none exists. The generated password is printed
- * exactly once, and only when SEED_PRINT_CREDENTIALS=true (local development). The account must
- * enrol two-factor authentication before it can use staff permissions.
- *
- * Later phases add default word lists, plans and feature flags here.
+ * Idempotent seed: creates the first SuperAdmin if none exists (the generated password is printed
+ * exactly once, and only when SEED_PRINT_CREDENTIALS=true in local development; the account must
+ * enrol two-factor authentication before staff permissions apply), and stores the default text
+ * moderation rules and site configuration unless they exist. There are no plans to seed: Parley
+ * launches free (ADR 0015).
  */
 import { randomBytes } from "node:crypto";
 import { MongoClient } from "mongodb";
@@ -13,6 +13,8 @@ import { Argon2PasswordHasher } from "../infrastructure/identity/crypto.js";
 import { createLogger } from "../infrastructure/observability/logger.js";
 import { applyMongoIndexes } from "../infrastructure/persistence/mongo/mongo-indexes.js";
 import { MongoUserRepository, USER_INDEXES } from "../infrastructure/persistence/mongo/user-repository.js";
+import { MongoTextRulesProvider } from "../infrastructure/moderation/text-rules-store.js";
+import { MongoSiteConfig } from "../infrastructure/site/mongo-site-config.js";
 
 const config = loadSeedConfig();
 const logger = createLogger({ service: "parley-seed", level: "info", pretty: false });
@@ -26,6 +28,13 @@ try {
   const database = client.db(config.mongo.database);
   await applyMongoIndexes(database, [USER_INDEXES], logger);
   const users = new MongoUserRepository(database);
+
+  const rules = await new MongoTextRulesProvider(database).current();
+  logger.info(
+    { blockedWords: rules.blockedWords.length, maskedWords: rules.maskedWords.length },
+    "Text moderation rules ready",
+  );
+  if (await new MongoSiteConfig(database).ensureDefaults()) logger.info("Default site configuration stored");
 
   if ((await users.countWithRole("SuperAdmin")) > 0) {
     logger.info("A SuperAdmin already exists; nothing to seed");

@@ -15,8 +15,11 @@ export function GuidelinesContent() {
           report it with &ldquo;Appears to be a minor&rdquo;. These reports are reviewed first.
         </li>
         <li>
-          <strong>Nudity and sexual content</strong>, including sexual acts, sexual requests and
-          sexualised comments.
+          <strong>Unwanted sexual content.</strong> Explicit content is prohibited in General Chat.
+          Adult Chat permits consensual adult nudity and sexual expression only for age-verified
+          participants who explicitly opt in for that session. Consent to the mode is not consent to
+          every activity. Stop or leave to withdraw; never pressure a participant. Adult Chat
+          remains unavailable until age verification is configured.
         </li>
         <li>
           <strong>Harassment and hate</strong>: insults, threats, slurs, or attacks on

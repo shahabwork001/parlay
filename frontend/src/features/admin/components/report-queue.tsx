@@ -9,10 +9,20 @@ import { cn } from "@/lib/utils";
 import { adminRepository, type Tier } from "@/repositories/admin-repository";
 import { formatRelative, TIER_LABELS } from "../format";
 import { useShortcuts } from "../hooks/use-shortcuts";
+import { pageFrom, useUrlState } from "../hooks/use-url-state";
 import { PageHeader, Pagination, QueryView, Segmented, TierBadge } from "./admin-ui";
 import { ReportReview } from "./report-review";
 
 type Status = "open" | "resolved" | "all";
+type Order = "priority" | "newest" | "oldest";
+
+const DEFAULTS = { status: "open", tier: "any", sort: "priority", page: "1" };
+
+const ORDER_OPTIONS = [
+  { value: "priority", label: "Most urgent" },
+  { value: "oldest", label: "Oldest" },
+  { value: "newest", label: "Newest" },
+] as const;
 
 const STATUS_OPTIONS = [
   { value: "open", label: "Open" },
@@ -30,15 +40,20 @@ const TIER_OPTIONS = [
 
 /** The review queue: open reports by priority (oldest first within a priority), with a review pane. */
 export function ReportQueue() {
-  const [status, setStatus] = useState<Status>("open");
-  const [tier, setTier] = useState<Tier | "any">("any");
-  const [page, setPage] = useState(1);
+  const [url, setUrl] = useUrlState(DEFAULTS);
+  const status = url.status as Status;
+  const tier = url.tier as Tier | "any";
+  const sort = url.sort as Order;
+  const page = pageFrom(url.page);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const query = useQuery({
-    queryKey: ["admin", "reports", status, tier, page],
+    queryKey: ["admin", "reports", status, tier, sort, page],
     queryFn: ({ signal }) =>
-      adminRepository.listReports({ status, page, ...(tier === "any" ? {} : { tier }) }, signal),
+      adminRepository.listReports(
+        { status, sort, page, ...(tier === "any" ? {} : { tier }) },
+        signal,
+      ),
     placeholderData: keepPreviousData,
     refetchInterval: 15_000,
   });
@@ -56,13 +71,10 @@ export function ReportQueue() {
   };
   useShortcuts({ j: () => move(1), k: () => move(-1) });
 
-  const filtersChanged =
-    <T,>(setter: (value: T) => void) =>
-    (value: T) => {
-      setter(value);
-      setPage(1);
-      setSelectedId(null);
-    };
+  const filtersChanged = (patch: Partial<typeof DEFAULTS>) => {
+    setUrl({ ...patch, page: "1" });
+    setSelectedId(null);
+  };
 
   return (
     <>
@@ -75,13 +87,19 @@ export function ReportQueue() {
               label="Status"
               value={status}
               options={STATUS_OPTIONS}
-              onChange={filtersChanged(setStatus)}
+              onChange={(value) => filtersChanged({ status: value })}
             />
             <Segmented
               label="Priority"
               value={tier}
               options={TIER_OPTIONS}
-              onChange={filtersChanged(setTier)}
+              onChange={(value) => filtersChanged({ tier: value })}
+            />
+            <Segmented
+              label="Order"
+              value={sort}
+              options={ORDER_OPTIONS}
+              onChange={(value) => filtersChanged({ sort: value })}
             />
           </div>
         }
@@ -135,7 +153,11 @@ export function ReportQueue() {
                   );
                 })}
               </ul>
-              <Pagination page={data.page} totalPages={data.totalPages} onPage={setPage} />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                onPage={(next) => setUrl({ page: String(next) })}
+              />
             </div>
             <div className={cn("min-w-0", current && selectedId ? "block" : "hidden lg:block")}>
               {selectedId ? (

@@ -1,3 +1,4 @@
+import { adultAdmission, type AdultAccessPolicy } from "../../application/features/chat/adult-access.js";
 import { v7 as uuidv7 } from "uuid";
 import type { EventPublisher } from "../../application/abstractions/messaging/integration-event.js";
 import type { RateLimiter } from "../../application/abstractions/rate-limiter.js";
@@ -10,6 +11,7 @@ import {
   type Participant,
   partnerOf,
 } from "../../application/features/chat/chat-types.js";
+import type { ProductMetrics } from "../../application/features/chat/product-metrics.js";
 import type { MatchStatsRecorder } from "../../application/features/chat/match-stats.js";
 import type { Matchmaker } from "../../application/features/chat/matchmaker.js";
 import type { RecentMessages } from "../../application/features/chat/recent-messages.js";
@@ -60,6 +62,8 @@ export const DEFAULT_CHAT_RATE_LIMITS: ChatRateLimits = {
 };
 
 export interface ChatGatewayOptions {
+  readonly metrics?: ProductMetrics;
+  readonly adultAccess?: AdultAccessPolicy;
   readonly matchmaker: Matchmaker;
   readonly events: EventPublisher;
   readonly rateLimiter: RateLimiter;
@@ -148,6 +152,9 @@ export class ChatGateway implements ChatSessionControl {
    * report) and publishes the end for trust scoring.
    */
   notifyEnded(session: ChatSession, reason: EndReason, endedBySubjectId?: string): void {
+    void this.options.metrics?.sessionEnded(session.sessionId, session.startedAt).catch((error: unknown) => {
+      this.options.logger.warn({ err: error }, "Session metrics unavailable");
+    });
     for (const participant of [session.caller, session.callee]) {
       if (participant.subjectId === endedBySubjectId) continue;
       this.io
@@ -168,9 +175,7 @@ export class ChatGateway implements ChatSessionControl {
   }
 
   async endIfActive(subjectId: string, sessionId: string): Promise<void> {
-    const active = await this.options.matchmaker.activeSession(subjectId);
-    if (active?.sessionId !== sessionId) return;
-    const session = await this.options.matchmaker.endSession(subjectId);
+    const session = await this.options.matchmaker.endSession(subjectId, undefined, sessionId);
     if (session) this.notifyEnded(session, "left", subjectId);
   }
 
@@ -188,7 +193,6 @@ export class ChatGateway implements ChatSessionControl {
     this.#connections.set(socket.id, connection);
     this.#onlineSubjects.set(subjectId, (this.#onlineSubjects.get(subjectId) ?? 0) + 1);
     void socket.join([
-      subjectRoom(subjectId),
       deviceRoom(identity.deviceId),
       networkRoom(identity.networkHash),
       subnetRoom(identity.subnetHash),
@@ -198,7 +202,14 @@ export class ChatGateway implements ChatSessionControl {
     const guard =
       <A extends unknown[]>(name: string, handler: (...args: A) => Promise<void>) =>
       (...args: A) => {
-        handler(...args).catch((error: unknown) => {
+        const run = async () => {
+          if (name !== "queue:join" && !(await this.options.matchmaker.isOwner(subjectId, socket.id))) {
+            respond(args.at(-1), NOT_IN_CHAT);
+            return;
+          }
+          await handler(...args);
+        };
+        run().catch((error: unknown) => {
           this.options.logger.error({ err: error, event: name }, "Chat event failed");
           respond(args.at(-1), INTERNAL);
         });
@@ -210,6 +221,9 @@ export class ChatGateway implements ChatSessionControl {
         respond(ack, INVALID);
         return;
       }
+      void this.options.metrics?.attempt().catch((error: unknown) => {
+        this.options.logger.warn({ err: error }, "Attempt metrics unavailable");
+      });
       const site = await this.options.siteConfig.current();
       if (!isChatModeEnabled(site, ticket.mode) && socket.data.principal.roles.length === 0) {
         respond(
@@ -246,8 +260,40 @@ export class ChatGateway implements ChatSessionControl {
           respond(ack, INVALID);
           return;
         }
+        const previous = await this.options.matchmaker.claimConnection(subjectId, socket.id);
+        if (previous && previous !== socket.id) {
+          this.io.in(previous).socketsLeave(subjectRoom(subjectId));
+          this.io.to(previous).emit("chat:replaced");
+          const old = this.#connections.get(previous);
+          if (old) {
+            this.stopRetry(old);
+            old.ticket = null;
+          }
+        }
+        await socket.join(subjectRoom(subjectId));
+        this.stopRetry(connection);
+        connection.ticket = null;
+        await this.options.matchmaker.leaveQueue(subjectId, socket.id);
         await this.endSession(socket, "left");
-        await startSearch(ack, { ...this.participant(socket), ...parsed.data });
+        if (parsed.data.interaction === "adult") {
+          const denied = await adultAdmission(
+            socket.data.principal,
+            parsed.data.adultConsent,
+            this.options.adultAccess,
+          );
+          if (denied) {
+            respond(ack, failure(denied.code, denied.message));
+            return;
+          }
+        }
+        await startSearch(ack, {
+          ...this.participant(socket),
+          ownerId: socket.id,
+          mode: parsed.data.mode,
+          interaction: parsed.data.interaction,
+          interests: parsed.data.interests,
+          language: parsed.data.language,
+        });
       }),
     );
 
@@ -255,6 +301,16 @@ export class ChatGateway implements ChatSessionControl {
       "match:next",
       guard("match:next", async (ack: unknown) => {
         await this.endSession(socket, "skipped");
+        if (connection.ticket?.interaction === "adult") {
+          this.stopRetry(connection);
+          connection.ticket = null;
+          await this.options.matchmaker.leaveQueue(subjectId, socket.id);
+          respond(
+            ack,
+            failure("adult.consent_required", "Choose Adult Chat again to consent to a new partner."),
+          );
+          return;
+        }
         await startSearch(ack, connection.ticket);
       }),
     );
@@ -265,7 +321,7 @@ export class ChatGateway implements ChatSessionControl {
         this.stopRetry(connection);
         connection.ticket = null;
         await this.endSession(socket, "left");
-        await this.options.matchmaker.leaveQueue(subjectId);
+        await this.options.matchmaker.leaveQueue(subjectId, socket.id);
         respond(ack, ok(null));
       }),
     );
@@ -311,9 +367,17 @@ export class ChatGateway implements ChatSessionControl {
           return;
         }
 
+        const session = await this.options.matchmaker.activeSession(subjectId);
+        if (!session) {
+          respond(ack, NOT_IN_CHAT);
+          return;
+        }
         const rules = await this.options.textRules.current();
         const strict = connection.ticket !== null && connection.ticket.pool !== "standard";
-        const moderated = moderateText(parsed.data.text, rules, { strict });
+        const moderated = moderateText(parsed.data.text, rules, {
+          strict,
+          adult: session.interaction === "adult",
+        });
         if (moderated.status === "empty") {
           respond(ack, INVALID);
           return;
@@ -325,12 +389,6 @@ export class ChatGateway implements ChatSessionControl {
         }
         if (connection.repeats.isSpam(moderated.text, Date.now(), rules)) {
           respond(ack, SPAM);
-          return;
-        }
-
-        const session = await this.options.matchmaker.activeSession(subjectId);
-        if (!session) {
-          respond(ack, NOT_IN_CHAT);
           return;
         }
 
@@ -391,23 +449,38 @@ export class ChatGateway implements ChatSessionControl {
           respond(ack, ok({ outcome: "recorded" as const }));
           return;
         }
+        const session = await this.options.matchmaker.activeSession(subjectId);
+        if (!session) {
+          respond(ack, NOT_IN_CHAT);
+          return;
+        }
+        // This event means nudity, not age, coercion or exploitation. Those remain reportable.
+        if (session.interaction === "adult") {
+          respond(ack, ok({ outcome: "recorded" as const }));
+          return;
+        }
         const outcome = await this.options.recordContentFlag.execute(identity, parsed.data.score);
         respond(ack, ok({ outcome }));
       }),
     );
 
+    socket.on(
+      "rtc:outcome",
+      guard("rtc:outcome", async (payload: unknown) => {
+        if (!connection.signals.tryTake() || (payload !== "connected" && payload !== "failed")) return;
+        const session = await this.options.matchmaker.activeSession(subjectId);
+        if (session?.mode === "video") await this.options.metrics?.rtc(session.sessionId, subjectId, payload);
+      }),
+    );
     socket.on("disconnect", () => {
       this.stopRetry(connection);
       this.#connections.delete(socket.id);
       const remaining = (this.#onlineSubjects.get(subjectId) ?? 1) - 1;
-      if (remaining > 0) {
-        this.#onlineSubjects.set(subjectId, remaining);
-        return;
-      }
-      this.#onlineSubjects.delete(subjectId);
+      if (remaining > 0) this.#onlineSubjects.set(subjectId, remaining);
+      else this.#onlineSubjects.delete(subjectId);
       void Promise.all([
         this.endSession(socket, "disconnected"),
-        this.options.matchmaker.leaveQueue(subjectId),
+        this.options.matchmaker.leaveQueue(subjectId, socket.id),
       ]).catch((error: unknown) => {
         this.options.logger.error({ err: error }, "Cleaning up after disconnect failed");
       });
@@ -473,8 +546,15 @@ export class ChatGateway implements ChatSessionControl {
     if (!ticket) return "queued";
 
     const result = await this.options.matchmaker.join(ticket, { fresh });
+    if (result.status === "cancelled") {
+      connection.ticket = null;
+      return "queued";
+    }
     if (result.status === "matched") {
       this.announce(result.session, ticket.pool);
+      void this.options.metrics?.matched(result.waitedMs).catch((error: unknown) => {
+        this.options.logger.warn({ err: error }, "Match metrics unavailable");
+      });
       this.options.matchStats.recordMatch(result.waitedMs, new Date()).catch((error: unknown) => {
         this.options.logger.warn({ err: error }, "Recording match stats failed");
       });
@@ -497,8 +577,12 @@ export class ChatGateway implements ChatSessionControl {
     const base = {
       sessionId: session.sessionId,
       mode: session.mode,
+      interaction: session.interaction ?? "general",
       sharedInterests: session.sharedInterests,
-      safety: { nsfwThreshold: pool === "standard" ? nsfwThreshold.standard : nsfwThreshold.strict },
+      safety: {
+        nsfwThreshold: pool === "standard" ? nsfwThreshold.standard : nsfwThreshold.strict,
+        screenNudity: session.interaction !== "adult",
+      },
     };
     this.io.to(subjectRoom(session.caller.subjectId)).emit("match:found", { ...base, role: "caller" });
     this.io.to(subjectRoom(session.callee.subjectId)).emit("match:found", { ...base, role: "callee" });
@@ -506,7 +590,7 @@ export class ChatGateway implements ChatSessionControl {
 
   private async endSession(socket: ChatSocket, reason: EndReason): Promise<ChatSession | null> {
     const subjectId = socket.data.identity.subjectId;
-    const session = await this.options.matchmaker.endSession(subjectId);
+    const session = await this.options.matchmaker.endSession(subjectId, socket.id);
     if (session) this.notifyEnded(session, reason, subjectId);
     return session;
   }

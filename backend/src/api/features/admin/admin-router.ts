@@ -74,6 +74,7 @@ export function createAdminRouter({ context, healthChecks }: AdminRouterDependen
       noStore(response).json(
         await context.readModel.listReports({
           status: query.status,
+          sort: query.sort,
           tier: query.tier,
           reportedSubjectId: query.reportedSubjectId,
           page: createPageRequest(query.page, query.pageSize),
@@ -206,7 +207,11 @@ export function createAdminRouter({ context, healthChecks }: AdminRouterDependen
     async (_request, response) => {
       const query = validatedInput<undefined, UserSearchQueryInput>(response).query;
       noStore(response).json(
-        await context.readModel.searchUsers(query.q, createPageRequest(query.page, query.pageSize)),
+        await context.readModel.searchUsers(
+          query.q,
+          createPageRequest(query.page, query.pageSize),
+          query.sort,
+        ),
       );
     },
   );
@@ -277,6 +282,7 @@ export function createAdminRouter({ context, healthChecks }: AdminRouterDependen
           action: query.action || undefined,
           actorId: query.actorId || undefined,
           targetId: query.targetId || undefined,
+          order: query.order,
           page: createPageRequest(query.page, query.pageSize),
         }),
       );

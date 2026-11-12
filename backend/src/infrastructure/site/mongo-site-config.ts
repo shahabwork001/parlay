@@ -42,6 +42,16 @@ export class MongoSiteConfig implements SiteConfigRepository {
     return config;
   }
 
+  /** Stores the defaults unless a configuration exists (seed). Returns true when it wrote them. */
+  async ensureDefaults(): Promise<boolean> {
+    const result = await this.#configs.updateOne(
+      { _id: ID },
+      { $setOnInsert: { ...DEFAULT_SITE_CONFIG } },
+      { upsert: true },
+    );
+    return result.upsertedCount === 1;
+  }
+
   async save(config: SiteConfig): Promise<void> {
     await this.#configs.replaceOne({ _id: ID }, { ...config }, { upsert: true });
     this.#cached = { config, loadedAt: this.now() };

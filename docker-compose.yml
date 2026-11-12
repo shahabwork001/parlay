@@ -1,0 +1,18 @@
+# Full local stack: infrastructure, API, workers and frontend.
+#   ./scripts/dev-up.sh          (creates .env files on first run, then builds and starts everything)
+#   docker compose up -d --build (if .env files already exist)
+#
+# Each project owns its compose file; this file only composes them.
+name: parley
+
+include:
+  - path: backend/docker-compose.yml
+    env_file: backend/.env
+  - path: frontend/docker-compose.yml
+    env_file: frontend/.env
+
+services:
+  frontend:
+    depends_on:
+      api:
+        condition: service_healthy

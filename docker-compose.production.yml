@@ -1,0 +1,43 @@
+# Optional low-cost single-host overlay. This is not a public deployment command.
+# docker compose -f docker-compose.yml -f docker-compose.production.yml config --quiet
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  mongodb:
+    mem_limit: 768m
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    logging: *logs
+  redis:
+    mem_limit: 384m
+    logging: *logs
+  rabbitmq:
+    image: rabbitmq:4-alpine
+    mem_limit: 768m
+    logging: *logs
+  mailpit:
+    profiles: [local-email]
+  api:
+    mem_limit: 512m
+    environment:
+      NODE_ENV: production
+      PAYMENT_PROVIDER: none
+      ADULT_CHAT_ENABLED: "false"
+      RATE_LIMIT_MULTIPLIER: "1"
+      TRUST_PROXY: ${TRUST_PROXY:-loopback}
+    logging: *logs
+  workers:
+    environment:
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    mem_limit: 512m
+    logging: *logs
+  frontend:
+    mem_limit: 512m
+    logging: *logs
+  coturn:
+    mem_limit: 256m
+    logging: *logs

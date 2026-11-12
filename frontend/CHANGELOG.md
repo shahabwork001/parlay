@@ -4,6 +4,11 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Added (2026-11-12: repository and delivery preparation)
+
+- Root monorepo retains both project histories; development uses `dev` and reviewed production releases use `main`.
+- Shared Jenkins CI validates both applications; only non-PR `main` builds can deliver exact SHA-labelled images to Hetzner. Publishing and Jenkins commissioning require authenticated administrator setup. See `../docs/GITHUB_JENKINS.md`.
+
 ### Added (Phase 7: site configuration; monetisation deferred)
 
 - Announcement and maintenance notices under every header; start buttons disabled with an explanation when chat is paused or a mode is off; maintenance screen in chat; sign-up page explains when new accounts are paused.

@@ -8,15 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminRepository, type SystemStatus } from "@/repositories/admin-repository";
 import { formatDateTime, formatRelative } from "../format";
-import { Mono, PageHeader, Pagination, QueryView } from "./admin-ui";
+import { pageFrom, useUrlState } from "../hooks/use-url-state";
+import { Mono, PageHeader, Pagination, QueryView, SortHeader } from "./admin-ui";
+
+const AUDIT_DEFAULTS = { action: "", targetId: "", order: "newest", page: "1" };
 
 export function AuditLog() {
-  const [inputs, setInputs] = useState({ action: "", targetId: "" });
-  const [filter, setFilter] = useState(inputs);
-  const [page, setPage] = useState(1);
+  const [url, setUrl] = useUrlState(AUDIT_DEFAULTS);
+  const [inputs, setInputs] = useState({ action: url.action, targetId: url.targetId });
+  const order = url.order === "oldest" ? "oldest" : "newest";
+  const page = pageFrom(url.page);
   const query = useQuery({
-    queryKey: ["admin", "audit", filter, page],
-    queryFn: ({ signal }) => adminRepository.audit({ ...filter, page }, signal),
+    queryKey: ["admin", "audit", url.action, url.targetId, order, page],
+    queryFn: ({ signal }) =>
+      adminRepository.audit({ action: url.action, targetId: url.targetId, order, page }, signal),
     placeholderData: keepPreviousData,
   });
 
@@ -24,15 +29,14 @@ export function AuditLog() {
     <>
       <PageHeader
         title="Audit log"
-        description="Every staff action and automatic ban, newest first."
+        description="Every staff action and automatic ban. Filters and order are kept in the link."
       />
       <form
         role="search"
         className="flex flex-wrap items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          setFilter(inputs);
-          setPage(1);
+          setUrl({ ...inputs, page: "1" });
         }}
       >
         <div className="flex flex-col gap-2">
@@ -65,9 +69,13 @@ export function AuditLog() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                   <tr>
-                    <th scope="col" className="px-3 py-2 font-medium">
-                      When
-                    </th>
+                    <SortHeader
+                      label="When"
+                      direction={order === "newest" ? "descending" : "ascending"}
+                      onSort={() =>
+                        setUrl({ order: order === "newest" ? "oldest" : "newest", page: "1" })
+                      }
+                    />
                     <th scope="col" className="px-3 py-2 font-medium">
                       Who
                     </th>
@@ -115,7 +123,11 @@ export function AuditLog() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={data.page} totalPages={data.totalPages} onPage={setPage} />
+            <Pagination
+              page={data.page}
+              totalPages={data.totalPages}
+              onPage={(next) => setUrl({ page: String(next) })}
+            />
           </div>
         )}
       </QueryView>

@@ -254,7 +254,7 @@ describe("UpdateTextRules", () => {
     expect(fakes.textRules.rules.blockedWords).toEqual(["slurx"]);
     expect(fakes.audit.entries.at(-1)).toMatchObject({
       action: "rules.updated",
-      metadata: { maskedWords: 2 },
+      metadata: { maskedWords: "16 -> 2", added: "darn,heck,slurx" },
     });
   });
 });

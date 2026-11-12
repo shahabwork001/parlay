@@ -1,6 +1,11 @@
 import type { Redis } from "ioredis";
 import type { LiveStats } from "../../application/features/admin/admin-read-model.js";
-import { CHAT_MODES, MATCH_POOLS } from "../../application/features/chat/chat-types.js";
+import {
+  CHAT_MODES,
+  MATCH_POOLS,
+  INTERACTION_MODES,
+  matchmakingPool,
+} from "../../application/features/chat/chat-types.js";
 import type { MatchStatsRecorder } from "../../application/features/chat/match-stats.js";
 
 const MINUTE = 60_000;
@@ -53,12 +58,14 @@ export class RedisLiveStats implements LiveStats, MatchStatsRecorder {
   async waiting(): Promise<{ text: number; video: number }> {
     const pipeline = this.redis.pipeline();
     for (const mode of CHAT_MODES)
-      for (const pool of MATCH_POOLS) pipeline.zcard(`${this.matchmakingPrefix}:queue:${mode}:${pool}`);
+      for (const interaction of INTERACTION_MODES)
+        for (const pool of MATCH_POOLS)
+          pipeline.zcard(`${this.matchmakingPrefix}:queue:${mode}:${matchmakingPool(pool, interaction)}`);
     const results = (await pipeline.exec()) ?? [];
     const counts = results.map(([, value]) => (typeof value === "number" ? value : 0));
-    const sum = (offset: number) =>
-      counts.slice(offset, offset + MATCH_POOLS.length).reduce((a, b) => a + b, 0);
-    return { text: sum(0), video: sum(MATCH_POOLS.length) };
+    const width = MATCH_POOLS.length * INTERACTION_MODES.length;
+    const sum = (offset: number) => counts.slice(offset, offset + width).reduce((a, b) => a + b, 0);
+    return { text: sum(0), video: sum(width) };
   }
 
   activeSessions(): Promise<number> {

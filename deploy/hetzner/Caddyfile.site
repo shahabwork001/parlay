@@ -1,0 +1,13 @@
+
+# BEGIN PARLEY PREVIEW
+parley.178-104-162-246.sslip.io {
+    encode gzip zstd
+    @api path /api/* /socket.io/* /health/*
+    handle @api {
+        reverse_proxy parley-api:8080
+    }
+    handle {
+        reverse_proxy parley-frontend:3000
+    }
+}
+# END PARLEY PREVIEW

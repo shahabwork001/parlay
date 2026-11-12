@@ -39,4 +39,6 @@ Verified: 63 unit tests and 11 Testcontainers integration tests pass; full Compo
 
 ## Changelog
 
+- 2026-11-12: Root monorepo imports both original Git histories. Shared Jenkins pipeline validates both projects; production delivery is gated to non-PR `main`. Local secret/path audit, branch-guard tests and Compose/shell validation passed. GitHub publication and Jenkins/controller setup remain pending authenticated access; see `../../../docs/GITHUB_JENKINS.md`.
+
 - 2026-10-25: Feature documented (Phase 1 scaffolding).

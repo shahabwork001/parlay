@@ -6,6 +6,9 @@ import type { TextRules } from "../../../domain/moderation/text-rules.js";
 import type { Repository } from "../../abstractions/persistence/repository.js";
 
 export interface ReportRepository extends Repository<Report> {
+  isScoringComplete(id: string): Promise<boolean>;
+  completeScoring(id: string): Promise<void>;
+  pendingScoring(): Promise<string[]>;
   existsForSession(sessionId: string, reporterSubjectId: string): Promise<boolean>;
   /** Reports filed against the subject since the given time, and how many different people filed them. */
   countAgainst(subjectId: string, since: Date): Promise<{ reports: number; distinctReporters: number }>;
@@ -43,7 +46,7 @@ export interface ModerationNotifier {
 export interface TrustStore {
   /** The lowest score among the keys (account and device). Unknown keys have the default score. */
   scoreOf(keys: readonly string[]): Promise<number>;
-  adjust(keys: readonly string[], delta: number): Promise<void>;
+  adjust(keys: readonly string[], delta: number, effectId?: string): Promise<void>;
 }
 
 export interface EvidenceMessage {

@@ -6,6 +6,8 @@ import {
   type ChatSession,
   type JoinResult,
   MATCH_POOLS,
+  INTERACTION_MODES,
+  matchmakingPool,
   type MatchmakingPolicy,
   type MatchTicket,
   type Participant,
@@ -26,6 +28,7 @@ const SESSION_FIELDS = [
   "mode",
   "shared",
   "startedAt",
+  "interaction",
 ] as const;
 
 type Field = string | null | undefined;
@@ -60,7 +63,7 @@ export class RedisMatchmaker implements Matchmaker {
   ) {}
 
   async join(ticket: MatchTicket, options: { readonly fresh: boolean }): Promise<JoinResult> {
-    if (options.fresh) await this.leaveQueue(ticket.subjectId);
+    if (options.fresh) await this.leaveQueue(ticket.subjectId, ticket.ownerId);
 
     const now = this.now();
     const reply = (await PAIR_SCRIPT.run(
@@ -72,7 +75,7 @@ export class RedisMatchmaker implements Matchmaker {
         ticket.deviceId,
         packMeta(ticket),
         ticket.mode,
-        ticket.pool,
+        matchmakingPool(ticket.pool, ticket.interaction),
         ticket.language,
         ticket.interests.join(","),
         now,
@@ -81,10 +84,14 @@ export class RedisMatchmaker implements Matchmaker {
         this.policy.recentPartnerWindowMs,
         uuidv7(),
         this.policy.sessionTtlSeconds,
+        ticket.interaction ?? "general",
+        options.fresh ? "1" : "0",
+        ticket.ownerId ?? "",
       ],
     )) as Field[];
 
     const [status, sessionId, partner, partnerDevice, partnerMeta, sharedCsv, waitedMs] = reply;
+    if (status === "cancelled") return { status: "cancelled" };
     if (status === "active" && sessionId) return { status: "in_session", sessionId };
     const caller = toParticipant(partner, partnerDevice, partnerMeta);
     if (status === "matched" && sessionId && caller) {
@@ -94,6 +101,7 @@ export class RedisMatchmaker implements Matchmaker {
         session: {
           sessionId,
           mode: ticket.mode,
+          interaction: ticket.interaction ?? "general",
           caller,
           callee: {
             subjectId: ticket.subjectId,
@@ -110,11 +118,35 @@ export class RedisMatchmaker implements Matchmaker {
     return { status: "queued" };
   }
 
-  async leaveQueue(subjectId: string): Promise<void> {
-    const pipeline = this.redis.multi();
-    for (const queue of this.queues()) pipeline.zrem(queue, subjectId);
-    pipeline.del(this.key("ticket", subjectId));
-    await pipeline.exec();
+  async claimConnection(subjectId: string, ownerId: string): Promise<string | null> {
+    const previous: unknown = await this.redis.call(
+      "SET",
+      this.key("owner", subjectId),
+      ownerId,
+      "GET",
+      "EX",
+      this.policy.sessionTtlSeconds,
+    );
+    return typeof previous === "string" ? previous : null;
+  }
+  async isOwner(subjectId: string, ownerId: string): Promise<boolean> {
+    return (await this.redis.get(this.key("owner", subjectId))) === ownerId;
+  }
+  async leaveQueue(subjectId: string, ownerId?: string): Promise<void> {
+    await this.redis.eval(
+      `
+      if ARGV[1] ~= '' and redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+      for i = 3, #KEYS do redis.call('ZREM', KEYS[i], ARGV[2]) end
+      redis.call('DEL', KEYS[2])
+      return 1
+    `,
+      2 + this.queues().length,
+      this.key("owner", subjectId),
+      this.key("ticket", subjectId),
+      ...this.queues(),
+      ownerId ?? "",
+      subjectId,
+    );
   }
 
   async activeSession(subjectId: string): Promise<ChatSession | null> {
@@ -127,11 +159,23 @@ export class RedisMatchmaker implements Matchmaker {
     return (await this.readSession("session", sessionId)) ?? (await this.readSession("ended", sessionId));
   }
 
-  async endSession(subjectId: string): Promise<ChatSession | null> {
+  async endSession(
+    subjectId: string,
+    ownerId?: string,
+    expectedSessionId?: string,
+  ): Promise<ChatSession | null> {
     const reply = (await END_SCRIPT.run(
       this.redis,
       [],
-      [this.prefix, subjectId, this.now(), RECENT_TTL_SECONDS, this.policy.reportWindowSeconds],
+      [
+        this.prefix,
+        subjectId,
+        this.now(),
+        RECENT_TTL_SECONDS,
+        this.policy.reportWindowSeconds,
+        ownerId ?? "",
+        expectedSessionId ?? "",
+      ],
     )) as Field[] | null;
     if (!reply) return null;
     const [sessionId, ...fields] = reply;
@@ -182,14 +226,25 @@ export class RedisMatchmaker implements Matchmaker {
   }
 
   private toSession(sessionId: string, fields: readonly Field[]): ChatSession | null {
-    const [caller, callerDevice, callerMeta, callee, calleeDevice, calleeMeta, mode, sharedCsv, startedAt] =
-      fields;
+    const [
+      caller,
+      callerDevice,
+      callerMeta,
+      callee,
+      calleeDevice,
+      calleeMeta,
+      mode,
+      sharedCsv,
+      startedAt,
+      interaction,
+    ] = fields;
     const callerParticipant = toParticipant(caller, callerDevice, callerMeta);
     const calleeParticipant = toParticipant(callee, calleeDevice, calleeMeta);
     if (!callerParticipant || !calleeParticipant || !isChatMode(mode)) return null;
     return {
       sessionId,
       mode,
+      interaction: interaction === "adult" ? "adult" : "general",
       caller: callerParticipant,
       callee: calleeParticipant,
       sharedInterests: splitCsv(sharedCsv),
@@ -198,7 +253,11 @@ export class RedisMatchmaker implements Matchmaker {
   }
 
   private queues(): string[] {
-    return CHAT_MODES.flatMap((mode) => MATCH_POOLS.map((pool) => this.key("queue", mode, pool)));
+    return CHAT_MODES.flatMap((mode) =>
+      INTERACTION_MODES.flatMap((interaction) =>
+        MATCH_POOLS.map((pool) => this.key("queue", mode, matchmakingPool(pool, interaction))),
+      ),
+    );
   }
 
   private key(...parts: string[]): string {

@@ -1,11 +1,11 @@
 const PRINCIPLES = [
   {
     title: "Moderated",
-    body: "Automated screening runs on every stream, and every report is reviewed by a person.",
+    body: "General Chat uses on-device nudity screening. Reporting and blocking are available in both modes.",
   },
   {
     title: "Private by design",
-    body: "Video and conversations are never recorded. Your IP address is never shown to anyone.",
+    body: "Parley does not record calls. Reports retain limited evidence. Use relay-only video to prevent direct peer IP exposure.",
   },
   {
     title: "Stays connected",

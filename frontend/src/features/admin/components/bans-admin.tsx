@@ -15,6 +15,7 @@ import {
 } from "../format";
 import { Mono, PageHeader, Pagination, QueryView, Segmented } from "./admin-ui";
 import { useAdminPermissions } from "./admin-shell";
+import { pageFrom, useUrlState } from "../hooks/use-url-state";
 
 type Filter = "active" | "appeals" | "all";
 
@@ -25,6 +26,8 @@ const FILTERS = [
 ] as const;
 
 export const bansQueryKey = ["admin", "bans"] as const;
+
+const BAN_DEFAULTS = { filter: "appeals", page: "1" };
 
 function BanCard({ ban }: { ban: AdminBan }) {
   const queryClient = useQueryClient();
@@ -113,8 +116,21 @@ function BanCard({ ban }: { ban: AdminBan }) {
 }
 
 /** A list of bans with lift and appeal actions; `target` narrows it to one account or device. */
-export function BanList({ filter, target }: { filter: Filter; target?: string }) {
-  const [page, setPage] = useState(1);
+export function BanList({
+  filter,
+  target,
+  page: controlledPage,
+  onPage,
+}: {
+  filter: Filter;
+  target?: string;
+  /** Pass both to control paging (e.g. from the URL); otherwise the list pages on its own. */
+  page?: number;
+  onPage?: (page: number) => void;
+}) {
+  const [localPage, setLocalPage] = useState(1);
+  const page = controlledPage ?? localPage;
+  const setPage = onPage ?? setLocalPage;
   const query = useQuery({
     queryKey: [...bansQueryKey, filter, target, page],
     queryFn: ({ signal }) =>
@@ -142,15 +158,27 @@ export function BanList({ filter, target }: { filter: Filter; target?: string })
 }
 
 export function BansAdmin() {
-  const [filter, setFilter] = useState<Filter>("appeals");
+  const [url, setUrl] = useUrlState(BAN_DEFAULTS);
+  const filter = url.filter as Filter;
   return (
     <>
       <PageHeader
         title="Bans and appeals"
         description="Accepting an appeal lifts the ban. Shadow bans are invisible to the person and cannot be appealed."
-        actions={<Segmented label="Show" value={filter} options={FILTERS} onChange={setFilter} />}
+        actions={
+          <Segmented
+            label="Show"
+            value={filter}
+            options={FILTERS}
+            onChange={(value) => setUrl({ filter: value, page: "1" })}
+          />
+        }
       />
-      <BanList key={filter} filter={filter} />
+      <BanList
+        filter={filter}
+        page={pageFrom(url.page)}
+        onPage={(next) => setUrl({ page: String(next) })}
+      />
     </>
   );
 }

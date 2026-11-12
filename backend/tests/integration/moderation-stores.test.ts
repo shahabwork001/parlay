@@ -34,6 +34,43 @@ describe("moderation stores", () => {
     await infrastructure.close();
   });
 
+  it("applies retry-safe trust effects once even under concurrent delivery", async () => {
+    const trust = new CachedTrustStore(infrastructure.database, infrastructure.redis);
+    const id = `device:${randomUUID()}`;
+    await Promise.all(Array.from({ length: 8 }, () => trust.adjust([id], -3, "same-report")));
+    expect(await trust.scoreOf([id])).toBe(47);
+    await trust.adjust([id], -3, "different-report");
+    expect(await trust.scoreOf([id])).toBe(44);
+  });
+
+  it("preserves durable scoring recovery markers through aggregate updates", async () => {
+    const reports = new MongoReportRepository(infrastructure.database);
+    const report = Report.submit(
+      {
+        sessionId: randomUUID(),
+        mode: "text",
+        category: "spam",
+        reporter: party(randomUUID()),
+        reported: party(randomUUID()),
+        evidenceId: null,
+        note: null,
+      },
+      new Date(),
+    );
+    await reports.add(report);
+    expect(await reports.isScoringComplete(report.id)).toBe(false);
+    report.applyScore(
+      { image: null, text: null, labels: [] },
+      { reporterTrust: 50, reportedTrust: 50, recentReportsAgainst: 0 },
+      new Date(),
+    );
+    await reports.update(report);
+    expect(await reports.pendingScoring()).toContain(report.id);
+    await reports.completeScoring(report.id);
+    expect(await reports.isScoringComplete(report.id)).toBe(true);
+    expect(await reports.pendingScoring()).not.toContain(report.id);
+  });
+
   it("finds active bans by any target and keeps the Redis cache in step", async () => {
     const repository = new MongoBanRepository(infrastructure.database);
     const cache = new RedisBanCache(infrastructure.redis, `ban-test-${randomUUID()}`);

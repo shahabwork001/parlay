@@ -1,3 +1,20 @@
+import { UNAVAILABLE_ADULT_ACCESS } from "../application/features/chat/adult-access.js";
+import { MongoBlockRepository } from "../infrastructure/persistence/mongo/block-repository.js";
+import { MvpInsights } from "../infrastructure/admin/mvp-insights.js";
+import { createMvpRouter, registerMvpOpenApi } from "./features/site/mvp-router.js";
+import { AgeAssurance } from "../application/features/identity/age-assurance.js";
+import {
+  MongoAgeVerificationStore,
+  unavailableAgeProvider,
+} from "../infrastructure/identity/mongo-age-verification.js";
+import { createAgeRouter, registerAgeOpenApi } from "./features/identity/age-router.js";
+import { BillingService } from "../application/features/billing/billing-service.js";
+import { MongoBillingStore } from "../infrastructure/billing/mongo-billing-store.js";
+import {
+  MockPaymentProvider,
+  UnavailablePaymentProvider,
+} from "../infrastructure/billing/payment-providers.js";
+import { createBillingRouter, registerBillingOpenApi } from "./features/billing/billing-router.js";
 import { createServer } from "node:http";
 import { RecordContentFlag } from "../application/features/moderation/content-flags.js";
 import { SubmitReport } from "../application/features/moderation/reports.js";
@@ -48,6 +65,37 @@ const identity = createIdentityContext(infrastructure.database, infrastructure.e
 const rateLimiter = new RedisRateLimiter(infrastructure.redis);
 const moderation = createModerationContext(infrastructure, config);
 const clock = () => new Date();
+const insights = new MvpInsights(infrastructure.database, identity.hasher);
+await insights.initialize();
+const ageStore = new MongoAgeVerificationStore(infrastructure.database);
+await ageStore.initialize();
+const ageAssurance = new AgeAssurance(ageStore, unavailableAgeProvider, moderation.audit);
+const billingStore = new MongoBillingStore(infrastructure.database, config.billing.priceMinor);
+await billingStore.initialize();
+const paymentProvider =
+  config.billing.provider === "mock" && config.environment === "test"
+    ? new MockPaymentProvider(config.environment, config.billing.mockSecret ?? "")
+    : new UnavailablePaymentProvider();
+const billing = new BillingService(
+  billingStore,
+  paymentProvider,
+  config.environment === "production",
+  `${config.frontendUrl}/subscription`,
+);
+let reconcilingBilling = false;
+const billingTimer = setInterval(() => {
+  if (!billing.checkoutEnabled || reconcilingBilling) return;
+  reconcilingBilling = true;
+  void billing
+    .reconcile()
+    .catch((error: unknown) => {
+      logger.error({ err: error }, "Billing reconciliation failed");
+    })
+    .finally(() => {
+      reconcilingBilling = false;
+    });
+}, 30_000);
+billingTimer.unref();
 const liveStats = new RedisLiveStats(infrastructure.redis);
 const siteConfig = new MongoSiteConfig(infrastructure.database);
 const admin = createAdminContext(infrastructure, moderation, identity, liveStats);
@@ -61,6 +109,7 @@ if (turnEndpoint)
   );
 if (config.health.workersUrl) systemChecks.push(new HttpHealthCheck("workers", config.health.workersUrl));
 
+await new MongoBlockRepository(infrastructure.database).restore(infrastructure.redis);
 const matchmaker = new RedisMatchmaker(infrastructure.redis, {
   interestFallbackMs: config.matchInterestFallbackMs,
   recentPartnerWindowMs: 60_000,
@@ -75,6 +124,9 @@ const sessionControl = {
   endIfActive: (subjectId: string, sessionId: string) => chat.endIfActive(subjectId, sessionId),
 };
 const submitReport = new SubmitReport({
+  onDeferredFailure: (error) => {
+    logger.warn({ err: error }, "Report accepted; unfinished effects will be recovered by workers");
+  },
   matchmaker,
   sessions: sessionControl,
   recentMessages: moderation.recentMessages,
@@ -95,6 +147,9 @@ const app = createApp({
   trustProxy: config.trustProxy,
   authenticate: authenticate(identity.accessTokens),
   features: [
+    { router: createMvpRouter(insights, rateLimiter), openApi: registerMvpOpenApi },
+    { router: createAgeRouter(ageAssurance), openApi: registerAgeOpenApi },
+    { router: createBillingRouter(billing, moderation.audit, rateLimiter), openApi: registerBillingOpenApi },
     {
       router: createIdentityRouter({
         context: identity,
@@ -139,6 +194,8 @@ const sockets = createSocketServer(server, {
   logger: logger.child({ component: "socket" }),
 });
 const chat = new ChatGateway(sockets.io, {
+  adultAccess: config.adultChatEnabled ? ageAssurance : UNAVAILABLE_ADULT_ACCESS,
+  metrics: insights,
   matchmaker,
   events: infrastructure.eventPublisher,
   rateLimiter,
@@ -168,20 +225,15 @@ const chat = new ChatGateway(sockets.io, {
 const sweeper = new PresenceSweeper(infrastructure.redis, matchmaker, chat, logger, 10_000);
 chat.start();
 sweeper.start();
-moderation.bans.warmCache().then(
-  (count) => {
-    logger.info({ count }, "Ban cache warmed");
-  },
-  (error: unknown) => {
-    logger.error({ err: error }, "Warming the ban cache failed");
-  },
-);
+const warmedBanCount = await moderation.bans.warmCache();
+logger.info({ count: warmedBanCount }, "Ban cache warmed before accepting traffic");
 
 server.listen(config.port, () => {
   logger.info({ port: config.port }, "API listening");
 });
 
 onShutdown(logger, async () => {
+  clearInterval(billingTimer);
   sweeper.stop();
   chat.stop();
   await sockets.close();

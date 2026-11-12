@@ -8,6 +8,7 @@ import type { ChatMode } from "@/lib/constants";
 import { useChat } from "../hooks/use-chat";
 import { type ChatPhase, useChatStore } from "../store/chat-store";
 import { ChatUnavailable } from "./chat-unavailable";
+import { InteractionControls } from "./interaction-controls";
 import { Composer } from "./composer";
 import { MessageList } from "./message-list";
 
@@ -40,7 +41,8 @@ function Searching() {
 }
 
 export function ChatScreen({ mode }: { mode: ChatMode }) {
-  const { start, next, stop, block, reported, send, typed } = useChat(mode, { autoJoin: true });
+  const chat = useChat(mode, { autoJoin: true });
+  const { start, next, stop, block, reported, send, typed } = chat;
   const phase = useChatStore((state) => state.phase);
   const notice = useChatStore((state) => state.notice);
   const unavailableReason = useChatStore((state) => state.unavailableReason);
@@ -64,6 +66,7 @@ export function ChatScreen({ mode }: { mode: ChatMode }) {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+      <InteractionControls {...chat} />
       <div className="flex items-center justify-between gap-3 border-b px-4 py-2.5">
         <p className="text-sm text-muted-foreground" aria-live="polite">
           {STATUS[phase]}

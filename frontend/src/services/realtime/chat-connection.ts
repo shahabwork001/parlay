@@ -19,7 +19,7 @@ export function openChatConnection(onFatalError: (code: string) => void): ChatSo
   const socket: ChatSocket = io(publicConfig.apiBaseUrl, {
     autoConnect: false,
     withCredentials: true,
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
     reconnectionDelay: 500,
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.5,

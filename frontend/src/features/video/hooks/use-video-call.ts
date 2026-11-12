@@ -37,6 +37,7 @@ const NO_DEVICES: AvailableDevices = { cameras: [], microphones: [] };
 export function useVideoCall() {
   const sessionId = useChatStore((state) => state.sessionId);
   const role = useChatStore((state) => state.role);
+  const screenNudity = useChatStore((state) => state.screenNudity);
   const relayOnly = useSettingsStore((state) => state.relayOnly);
   const nsfwThreshold = useChatStore((state) => state.nsfwThreshold);
 
@@ -71,7 +72,10 @@ export function useVideoCall() {
     onSignal: deliverSignal,
     onMediaState: setPartnerMedia,
   });
-  const { sendSignal, sendMediaState, flagContent } = chat;
+  const { sendSignal, sendMediaState, flagContent, reportRtcOutcome } = chat;
+  useEffect(() => {
+    if (peerState === "connected" || peerState === "failed") reportRtcOutcome(peerState);
+  }, [peerState, reportRtcOutcome]);
 
   useEffect(() => {
     thresholdRef.current = nsfwThreshold;
@@ -173,7 +177,7 @@ export function useVideoCall() {
   // Screen the person's own camera for the whole chat. Frames are classified on the device only.
   useEffect(() => {
     const stream = localStreamRef.current;
-    if (!sessionId || !stream) return;
+    if (!sessionId || !stream || !screenNudity) return;
     const screener = new ContentScreener(thresholdRef.current, {
       onChange: (flagged, score) => {
         setFlaggedSessionId(flagged ? sessionId : null);
@@ -187,11 +191,11 @@ export function useVideoCall() {
       screener.stop();
       screenerRef.current = null;
     };
-  }, [sessionId, flagContent]);
+  }, [sessionId, flagContent, screenNudity]);
 
   const screening: ScreeningState = screeningUnavailable
     ? "unavailable"
-    : !sessionId
+    : !sessionId || !screenNudity
       ? "idle"
       : flaggedSessionId === sessionId
         ? "flagged"

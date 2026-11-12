@@ -8,6 +8,7 @@ import type {
   ReportSummary,
   SessionSummary,
   StoredAuditEntry,
+  UserSort,
   UserSummary,
 } from "../../application/features/admin/admin-read-model.js";
 import { type PagedResult, type PageRequest, toPagedResult } from "../../application/common/paging.js";
@@ -119,7 +120,9 @@ export class MongoAdminReadModel implements AdminReadModel {
     if (query.tier) filter.tier = query.tier;
     if (query.reportedSubjectId) filter["reported.subjectId"] = query.reportedSubjectId;
     // Open reports: most urgent first, oldest first within a priority. Resolved: most recent first.
-    const sort: Document = query.status === "open" ? { priority: -1, createdAt: 1 } : { createdAt: -1 };
+    const order = query.sort ?? (query.status === "open" ? "priority" : "newest");
+    const sort: Document =
+      order === "priority" ? { priority: -1, createdAt: 1 } : { createdAt: order === "oldest" ? 1 : -1 };
     return this.page(this.reports, filter, sort, query.page, toReportSummary);
   }
 
@@ -154,7 +157,11 @@ export class MongoAdminReadModel implements AdminReadModel {
     return this.page(this.bans, filter, sort, query.page, toBanSummary);
   }
 
-  async searchUsers(query: string, page: PageRequest): Promise<PagedResult<UserSummary>> {
+  async searchUsers(
+    query: string,
+    page: PageRequest,
+    sort: UserSort = "newest",
+  ): Promise<PagedResult<UserSummary>> {
     const term = query.trim().toLowerCase();
     const filter: Filter<UserProjection> = term
       ? { $or: [{ _id: term }, { email: { $regex: escapeRegex(term) } }] }
@@ -162,7 +169,7 @@ export class MongoAdminReadModel implements AdminReadModel {
     const [documents, total] = await Promise.all([
       this.users
         .find(filter, { projection: USER_FIELDS })
-        .sort({ createdAt: -1 })
+        .sort(sort === "email" ? { email: 1 } : { createdAt: sort === "oldest" ? 1 : -1 })
         .skip(page.skip)
         .limit(page.pageSize)
         .toArray(),
@@ -225,7 +232,7 @@ export class MongoAdminReadModel implements AdminReadModel {
     return this.page(
       this.database.collection<AuditProjection>("audit_log"),
       filter,
-      { at: -1 },
+      { at: query.order === "oldest" ? 1 : -1 },
       query.page,
       ({ _id, ...entry }) => ({ ...entry, id: _id }),
     );

@@ -16,11 +16,12 @@ export type AckCallback<T> = (result: Ack<T>) => void;
 export interface MatchFoundPayload {
   readonly sessionId: string;
   readonly mode: ChatMode;
+  readonly interaction: "general" | "adult";
   /** The caller waited longer and starts the WebRTC negotiation in video mode. */
   readonly role: "caller" | "callee";
   readonly sharedInterests: readonly string[];
   /** On-device screening settings for this session (stricter for low-trust pools). */
-  readonly safety: { readonly nsfwThreshold: number };
+  readonly safety: { readonly nsfwThreshold: number; readonly screenNudity: boolean };
 }
 
 export interface ChatMessagePayload {
@@ -30,6 +31,7 @@ export interface ChatMessagePayload {
 }
 
 export interface ServerToClientEvents {
+  "chat:replaced": () => void;
   "match:found": (payload: MatchFoundPayload) => void;
   "match:ended": (payload: { readonly sessionId: string; readonly reason: EndReason }) => void;
   "chat:message": (payload: ChatMessagePayload) => void;
@@ -43,6 +45,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  "rtc:outcome": (payload: "connected" | "failed") => void;
   "queue:join": (payload: unknown, ack: AckCallback<{ status: "matched" | "queued" }>) => void;
   "queue:leave": (ack: AckCallback<null>) => void;
   "match:next": (ack: AckCallback<{ status: "matched" | "queued" }>) => void;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePreferencesStore } from "@/features/preferences/store/preferences-store";
 import { playMatchSound } from "@/features/settings/match-sound";
 import { useSettingsStore } from "@/features/settings/store/settings-store";
@@ -29,6 +29,9 @@ export interface ChatOptions {
  */
 export function useChat(mode: ChatMode, options: ChatOptions) {
   const socketRef = useRef<ChatSocket | null>(null);
+  const [interaction, setInteraction] = useState<"general" | "adult">("general");
+  const interactionRef = useRef<"general" | "adult">("general");
+  const [consentRequired, setConsentRequired] = useState(false);
   const typingRef = useRef({ lastSent: 0, idleTimer: 0, partnerTimer: 0 });
   const optionsRef = useRef(options);
   const router = useRouter();
@@ -37,15 +40,30 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
     optionsRef.current = options;
   });
 
-  const join = useCallback(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-    const { interests, language } = usePreferencesStore.getState();
-    useChatStore.getState().searching();
-    socket.emit("queue:join", { mode, language, interests }, (result) => {
-      if (!result.ok) useChatStore.getState().setNotice(result.error.message);
-    });
-  }, [mode]);
+  const join = useCallback(
+    (adultConsent = false) => {
+      const socket = socketRef.current;
+      if (!socket) return;
+      if (interactionRef.current === "adult" && !adultConsent) {
+        useChatStore.getState().stopped();
+        setConsentRequired(true);
+        return;
+      }
+      const { interests, language } = usePreferencesStore.getState();
+      useChatStore.getState().searching();
+      socket.emit(
+        "queue:join",
+        { mode, language, interests, interaction: interactionRef.current, adultConsent },
+        (result) => {
+          if (!result.ok) {
+            useChatStore.getState().stopped();
+            useChatStore.getState().setNotice(result.error.message);
+          }
+        },
+      );
+    },
+    [mode],
+  );
 
   useEffect(() => {
     const store = useChatStore.getState();
@@ -77,6 +95,11 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
       socketRef.current = socket;
 
       socket.on("connect", () => {
+        if (interactionRef.current === "adult") {
+          store.stopped();
+          store.setNotice("Adult Chat requires fresh consent after reconnecting.");
+          return;
+        }
         const { phase } = useChatStore.getState();
         if (phase === "searching" || (phase === "connecting" && optionsRef.current.autoJoin))
           join();
@@ -87,8 +110,23 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
           useChatStore.getState().ended("connection");
         }
       });
+      socket.on("chat:replaced", () => {
+        useChatStore.getState().stopped();
+        setConsentRequired(false);
+        useChatStore
+          .getState()
+          .setNotice("Chat opened in another tab. Start here again to take over.");
+      });
       socket.on("match:found", (match) => {
-        useChatStore.getState().matched(match);
+        const current = useChatStore.getState();
+        if (
+          current.phase !== "searching" ||
+          (match.interaction ?? "general") !== interactionRef.current
+        ) {
+          socket.emit("queue:leave", () => undefined);
+          return;
+        }
+        current.matched(match);
         if (useSettingsStore.getState().matchSound) playMatchSound();
       });
       socket.on("match:ended", ({ reason }) => useChatStore.getState().ended(reason));
@@ -121,6 +159,12 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
   const next = useCallback(() => {
     const socket = socketRef.current;
     if (!socket?.connected) return;
+    if (interactionRef.current === "adult") {
+      socket.emit("queue:leave", () => undefined);
+      useChatStore.getState().stopped();
+      setConsentRequired(true);
+      return;
+    }
     useChatStore.getState().searching();
     socket.emit("match:next", (result) => {
       if (!result.ok) join();
@@ -128,6 +172,7 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
   }, [join]);
 
   const stop = useCallback(() => {
+    setConsentRequired(false);
     socketRef.current?.emit("queue:leave", () => undefined);
     useChatStore.getState().stopped();
   }, []);
@@ -193,8 +238,33 @@ export function useChat(mode: ChatMode, options: ChatOptions) {
     );
   }, []);
 
+  const reportRtcOutcome = useCallback((outcome: "connected" | "failed") => {
+    socketRef.current?.emit("rtc:outcome", outcome);
+  }, []);
+
+  const selectInteraction = useCallback(
+    (selected: "general" | "adult") => {
+      stop();
+      interactionRef.current = selected;
+      setInteraction(selected);
+    },
+    [stop],
+  );
+
   return {
-    start: join,
+    reportRtcOutcome,
+    interaction,
+    selectInteraction,
+    consentRequired,
+    consent: () => {
+      setConsentRequired(false);
+      join(true);
+    },
+    cancelConsent: () => {
+      setConsentRequired(false);
+      stop();
+    },
+    start: () => join(),
     next,
     stop,
     block,

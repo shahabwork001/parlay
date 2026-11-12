@@ -57,8 +57,8 @@ export class UpdateSiteConfig {
       action: "site.updated",
       target: { type: "site", id: "config" },
       metadata: {
-        maintenance: input.maintenance.enabled,
-        announcement: input.announcement !== null,
+        maintenance: `${String(before.maintenance.enabled)} -> ${String(input.maintenance.enabled)}`,
+        announcement: `${before.announcement?.message ?? "none"} -> ${input.announcement?.message ?? "none"}`,
         changedFlags: changed.join(",") || null,
       },
       at: now,

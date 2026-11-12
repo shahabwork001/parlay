@@ -75,6 +75,21 @@ export class RecordingEnforcer implements BanEnforcer {
 }
 
 export class InMemoryReports extends InMemoryRepository<Report> implements ReportRepository {
+  readonly completed = new Set<string>();
+  isScoringComplete(id: string): Promise<boolean> {
+    return Promise.resolve(this.completed.has(id));
+  }
+  completeScoring(id: string): Promise<void> {
+    this.completed.add(id);
+    return Promise.resolve();
+  }
+  pendingScoring(): Promise<string[]> {
+    return Promise.resolve(
+      this.all()
+        .filter((r) => !this.completed.has(r.id))
+        .map((r) => r.id),
+    );
+  }
   existsForSession(sessionId: string, reporterSubjectId: string): Promise<boolean> {
     return Promise.resolve(
       this.all().some(
@@ -109,13 +124,19 @@ export class InMemoryEvidence implements EvidenceStore {
 
 export class InMemoryTrust implements TrustStore {
   readonly scores = new Map<string, number>();
+  readonly effects = new Set<string>();
 
   scoreOf(keys: readonly string[]): Promise<number> {
     return Promise.resolve(Math.min(...keys.map((key) => this.scores.get(key) ?? TRUST.default)));
   }
 
-  adjust(keys: readonly string[], delta: number): Promise<void> {
-    for (const key of keys) this.scores.set(key, clampTrust((this.scores.get(key) ?? TRUST.default) + delta));
+  adjust(keys: readonly string[], delta: number, effectId?: string): Promise<void> {
+    for (const key of keys) {
+      const id = `${key}:${effectId ?? ""}`;
+      if (effectId && this.effects.has(id)) continue;
+      this.scores.set(key, clampTrust((this.scores.get(key) ?? TRUST.default) + delta));
+      if (effectId) this.effects.add(id);
+    }
     return Promise.resolve();
   }
 }

@@ -26,6 +26,7 @@ export interface SubmitReportInput {
 }
 
 export interface ReportDependencies {
+  readonly onDeferredFailure?: (error: unknown) => void;
   readonly matchmaker: Pick<Matchmaker, "findSession" | "block">;
   readonly sessions: ChatSessionControl;
   readonly recentMessages: RecentMessages;
@@ -65,13 +66,6 @@ export class SubmitReport {
 
     await deps.sessions.endIfActive(reporter.subjectId, session.sessionId);
     await deps.matchmaker.block(reporter, reported);
-    await deps.events.publish(PartnerBlocked, {
-      blockerSubjectId: reporter.subjectId,
-      blockerDeviceId: reporter.deviceId,
-      blockedSubjectId: reported.subjectId,
-      blockedDeviceId: reported.deviceId,
-      blockedAt: deps.clock().toISOString(),
-    });
 
     const now = deps.clock();
     const messages = (await deps.recentMessages.list(session.sessionId)).slice(-REPORTED_MESSAGE_COUNT);
@@ -107,11 +101,23 @@ export class SubmitReport {
       });
     }
     await deps.reports.add(report);
+    try {
+      if (report.isMinorSafety)
+        await deps.bans.issueAutomatic(personalTargets(reported), "pending-review", null, report.id);
 
-    if (report.isMinorSafety)
-      await deps.bans.issueAutomatic(personalTargets(reported), "pending-review", null, report.id);
+      await deps.events.publish(PartnerBlocked, {
+        blockerSubjectId: reporter.subjectId,
+        blockerDeviceId: reporter.deviceId,
+        blockedSubjectId: reported.subjectId,
+        blockedDeviceId: reported.deviceId,
+        blockedAt: deps.clock().toISOString(),
+      });
 
-    await deps.events.publish(ReportSubmitted, { reportId: report.id });
+      await deps.events.publish(ReportSubmitted, { reportId: report.id });
+    } catch (error) {
+      // The report itself is durable. Workers retry the incomplete workflow independently.
+      deps.onDeferredFailure?.(error);
+    }
     return ok({ reportId: report.id });
   }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ChatSession } from "../../../src/application/features/chat/chat-types.js";
 import { GetMyBan, SubmitAppeal } from "../../../src/application/features/moderation/bans.js";
 import { RecordContentFlag } from "../../../src/application/features/moderation/content-flags.js";
@@ -482,5 +482,52 @@ describe("GetReportEvidence", () => {
 
     const missing = await evidence.execute(staff(["Admin"]), "0199f000-0000-7000-8000-0000000000ff");
     expect(!missing.ok && missing.error.code).toBe("report.not_found");
+  });
+});
+
+describe("moderation recovery", () => {
+  it("retries trust after scoring has committed and does not apply it twice", async () => {
+    const { fakes, reporter, reported, session, submit } = reportSetup();
+    const result = await submit.execute({
+      reporter: identityOf(reporter),
+      sessionId: session.sessionId,
+      category: "spam",
+      note: null,
+      snapshot: null,
+    });
+    if (!result.ok) throw new Error(result.error.code);
+    const scorer = new ScoreReport({ ...fakes, bans: fakes.banService, classifier: new FixedClassifier() });
+    const event = {
+      eventId: "recovery",
+      occurredAt: fakes.clock().toISOString(),
+      payload: { reportId: result.value.reportId },
+    };
+    vi.spyOn(fakes.trust, "adjust").mockRejectedValueOnce(new Error("Redis unavailable"));
+    await expect(scorer.handle(event)).rejects.toThrow("Redis unavailable");
+    expect((await fakes.reports.getById(result.value.reportId))?.scoredAt).not.toBeNull();
+    await scorer.handle(event);
+    await scorer.handle(event);
+    expect(await fakes.trust.scoreOf([`user:${reported.subjectId}`])).toBe(47);
+    expect(await fakes.reports.isScoringComplete(result.value.reportId)).toBe(true);
+  });
+  it("keeps a durable recoverable report if broker publication fails", async () => {
+    const { fakes, reporter, session, submit } = reportSetup();
+    vi.spyOn(fakes.events, "publish").mockRejectedValueOnce(new Error("broker unavailable"));
+    const accepted = await submit.execute({
+      reporter: identityOf(reporter),
+      sessionId: session.sessionId,
+      category: "appears-minor",
+      note: null,
+      snapshot: null,
+    });
+    expect(accepted.ok).toBe(true);
+    expect(await fakes.reports.pendingScoring()).toHaveLength(1);
+    const id = (await fakes.reports.pendingScoring())[0]!;
+    await new ScoreReport({ ...fakes, bans: fakes.banService, classifier: new FixedClassifier() }).handle({
+      eventId: "recover",
+      occurredAt: "",
+      payload: { reportId: id },
+    });
+    expect(fakes.bans.all()[0]?.reason).toBe("pending-review");
   });
 });

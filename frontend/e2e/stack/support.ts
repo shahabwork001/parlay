@@ -1,4 +1,6 @@
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import {
   type APIRequestContext,
   type Browser,
@@ -6,6 +8,7 @@ import {
   expect,
   type Page,
 } from "@playwright/test";
+import { TOTP } from "otpauth";
 
 export const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? "http://localhost:8025";
 export const PASSWORD = "correct horse battery staple";
@@ -110,4 +113,48 @@ export async function connectedTextPair(
     await expect(page.getByText(`You both like ${interest}.`)).toBeVisible({ timeout: 15_000 });
   }
   return [pages[0], pages[1]];
+}
+
+export interface StaffCredentials {
+  email: string;
+  password: string;
+  totpSecret: string;
+}
+
+/** A fresh staff account with two-factor enabled, created with the operator tool in the API container. */
+export function createStaff(role: "Moderator" | "Admin"): StaffCredentials {
+  const email = `e2e-${role.toLowerCase()}-${randomUUID().slice(0, 8)}@example.com`;
+  const output = execFileSync(
+    "docker",
+    [
+      "compose",
+      ...(process.env.E2E_COMPOSE_PROJECT
+        ? ["--project-name", process.env.E2E_COMPOSE_PROJECT]
+        : []),
+      ...(process.env.E2E_COMPOSE_ENV_FILE ? ["--env-file", process.env.E2E_COMPOSE_ENV_FILE] : []),
+      ...(process.env.E2E_COMPOSE_FILE ? ["-f", process.env.E2E_COMPOSE_FILE] : []),
+      "exec",
+      "-T",
+      "api",
+      "node",
+      "dist/tools/create-staff.js",
+      "--email",
+      email,
+      "--role",
+      role,
+    ],
+    { cwd: path.resolve(process.cwd(), ".."), encoding: "utf8" },
+  );
+  return JSON.parse(output.trim().split("\n").at(-1) ?? "{}") as StaffCredentials;
+}
+
+export async function signInAsStaff(page: Page, staff: StaffCredentials) {
+  await page.goto("/login?next=/admin", { waitUntil: "networkidle" });
+  await page.getByLabel("Email").fill(staff.email);
+  await page.getByLabel("Password").fill(staff.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  const code = new TOTP({ secret: staff.totpSecret, digits: 6, period: 30 }).generate();
+  await page.getByLabel("Authentication code").fill(code);
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 15_000 });
 }

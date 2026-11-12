@@ -46,6 +46,10 @@ const infrastructureSchema = z.object({
 const apiSchema = infrastructureSchema.extend({
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   CORS_ALLOWED_ORIGINS: commaSeparatedUrls,
+  ADULT_CHAT_ENABLED: booleanFlag.default(false),
+  PAYMENT_PROVIDER: z.enum(["none", "mock"]).default("none"),
+  MOCK_PAYMENT_WEBHOOK_SECRET: z.string().min(32).optional(),
+  PLUS_PRICE_MINOR: z.coerce.number().int().min(100).max(100_000).default(999),
   FRONTEND_URL: z.url().default("http://localhost:3000"),
   TRUST_PROXY: z.string().default("loopback"),
   COOKIE_SECURE: booleanFlag.default(true),
@@ -54,7 +58,7 @@ const apiSchema = infrastructureSchema.extend({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   HASH_SECRET: secret("HASH_SECRET"),
   TOTP_ENCRYPTION_KEY: base64Key,
-  TERMS_VERSION: z.string().min(1).max(32).default("2026-10-25"),
+  TERMS_VERSION: z.string().min(1).max(32).default("2026-10-28"),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().int().min(1).max(1000).default(1),
   MATCH_INTEREST_FALLBACK_MS: z.coerce.number().int().min(0).max(60_000).default(5000),
   TURN_SECRET: z.string().min(16, "TURN_SECRET must be at least 16 characters."),
@@ -100,6 +104,12 @@ export interface InfrastructureConfig {
 }
 
 export interface ApiConfig extends InfrastructureConfig {
+  readonly adultChatEnabled: boolean;
+  readonly billing: {
+    readonly provider: "none" | "mock";
+    readonly mockSecret: string | undefined;
+    readonly priceMinor: number;
+  };
   readonly port: number;
   readonly corsAllowedOrigins: readonly string[];
   readonly frontendUrl: string;
@@ -182,7 +192,20 @@ function toInfrastructure(values: z.infer<typeof infrastructureSchema>): Infrast
 /** Validates the environment once at startup and fails fast with every problem listed. */
 export function loadApiConfig(environment: Environment = process.env): ApiConfig {
   const values = parse(apiSchema, environment);
+  if (
+    values.PAYMENT_PROVIDER === "mock" &&
+    (values.NODE_ENV === "production" || !values.MOCK_PAYMENT_WEBHOOK_SECRET)
+  )
+    throw new ConfigError([
+      "Mock billing requires development/test environment and MOCK_PAYMENT_WEBHOOK_SECRET; it is forbidden in production.",
+    ]);
   return {
+    adultChatEnabled: values.ADULT_CHAT_ENABLED,
+    billing: {
+      provider: values.PAYMENT_PROVIDER,
+      mockSecret: values.MOCK_PAYMENT_WEBHOOK_SECRET,
+      priceMinor: values.PLUS_PRICE_MINOR,
+    },
     ...toInfrastructure(values),
     port: values.PORT,
     corsAllowedOrigins: values.CORS_ALLOWED_ORIGINS,

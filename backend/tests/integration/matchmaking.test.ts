@@ -64,6 +64,60 @@ describe("RedisMatchmaker", () => {
     expect((await matchmaker.activeSession("b"))?.sessionId).toBe(result.session.sessionId);
   });
 
+  it("isolates General and Adult, preserves Adult in ended sessions, and cancels Adult tickets", async () => {
+    await matchmaker.join(ticket("general"), { fresh: true });
+    expect((await matchmaker.join(ticket("adult-a", { interaction: "adult" }), { fresh: true })).status).toBe(
+      "queued",
+    );
+    const pair = await matchmaker.join(ticket("adult-b", { interaction: "adult" }), { fresh: true });
+    expect(pair.status).toBe("matched");
+    if (pair.status !== "matched") throw new Error("expected Adult match");
+    expect(pair.session.caller.subjectId).toBe("adult-a");
+    expect((await matchmaker.activeSession("adult-a"))?.interaction).toBe("adult");
+    expect((await matchmaker.endSession("adult-a"))?.interaction).toBe("adult");
+    expect((await matchmaker.findSession(pair.session.sessionId))?.interaction).toBe("adult");
+    await matchmaker.join(ticket("cancel", { interaction: "adult" }), { fresh: true });
+    await matchmaker.leaveQueue("cancel");
+    expect(await redis.zscore(`${prefix}:queue:text:adult-standard`, "cancel")).toBeNull();
+    expect((await matchmaker.join(ticket("general-b"), { fresh: true })).status).toBe("matched");
+  });
+
+  it("does not resurrect an Adult consent ticket after cancellation or a completed match", async () => {
+    const adult = ticket("adult", { interaction: "adult" });
+    await matchmaker.join(adult, { fresh: true });
+    await matchmaker.leaveQueue(adult.subjectId);
+    expect((await matchmaker.join(adult, { fresh: false })).status).toBe("cancelled");
+    await matchmaker.join(adult, { fresh: true });
+    await matchmaker.join(ticket("partner", { interaction: "adult" }), { fresh: true });
+    await matchmaker.endSession(adult.subjectId);
+    expect((await matchmaker.join(adult, { fresh: false })).status).toBe("cancelled");
+  });
+
+  it("fences stale owners and an old report cannot end a replacement session", async () => {
+    await matchmaker.claimConnection("a", "old-socket");
+    await matchmaker.join(ticket("a", { ownerId: "old-socket" }), { fresh: true });
+    expect(await matchmaker.claimConnection("a", "new-socket")).toBe("old-socket");
+    await matchmaker.join(ticket("a", { ownerId: "new-socket" }), { fresh: true });
+    await matchmaker.leaveQueue("a", "old-socket");
+    expect((await matchmaker.join(ticket("a", { ownerId: "old-socket" }), { fresh: false })).status).toBe(
+      "cancelled",
+    );
+    const result = await matchmaker.join(ticket("b"), { fresh: true });
+    if (result.status !== "matched") throw new Error("expected a new-owner match");
+    expect(await matchmaker.endSession("a", "old-socket")).toBeNull();
+    expect(await matchmaker.endSession("a", undefined, "an-old-session")).toBeNull();
+    expect((await matchmaker.activeSession("a"))?.sessionId).toBe(result.session.sessionId);
+    expect((await matchmaker.endSession("a", "new-socket"))?.sessionId).toBe(result.session.sessionId);
+  });
+
+  it("does not select a replaced socket's ticket during the takeover gap", async () => {
+    await matchmaker.claimConnection("a", "old");
+    await matchmaker.join(ticket("a", { ownerId: "old" }), { fresh: true });
+    await matchmaker.claimConnection("a", "new");
+    expect((await matchmaker.join(ticket("b"), { fresh: true })).status).toBe("queued");
+    expect((await matchmaker.join(ticket("a", { ownerId: "new" }), { fresh: true })).status).toBe("matched");
+  });
+
   it("keeps text and video queues separate", async () => {
     await matchmaker.join(ticket("a", { mode: "video" }), { fresh: true });
     expect((await matchmaker.join(ticket("b", { mode: "text" }), { fresh: true })).status).toBe("queued");

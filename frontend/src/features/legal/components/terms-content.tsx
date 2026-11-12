@@ -18,19 +18,22 @@ export function TermsContent() {
 
       <h2>2. Your conduct</h2>
       <p>
-        You must follow the <Link href="/guidelines">Community Guidelines</Link>. In short: no
-        nudity or sexual content, no harassment, hate or threats, no content involving minors, no
-        spam or advertising, and no sharing of other people&apos;s personal information. You are
-        responsible for what you say and show.
+        You must follow the <Link href="/guidelines">Community Guidelines</Link>. General Chat
+        prohibits explicit sexual content. Adult Chat permits consensual adult sexual expression
+        only after verified age and explicit consent for the session; it is unavailable until
+        verification is configured. Neither mode allows harassment, hate, threats, exploitation,
+        content involving minors, spam or advertising, and no sharing of other people&apos;s
+        personal information. You are responsible for what you say and show.
       </p>
 
       <h2>3. Moderation and reports</h2>
       <p>
-        To keep Parley safe, we screen video automatically and review reports with human moderators.
-        When someone reports you, the report includes a single still image captured from the video
-        at that moment and the last few text messages of the conversation. These are kept only as
-        report evidence, as described in the <Link href="/privacy">Privacy Policy</Link>.
-        Conversations are otherwise never recorded.
+        General Chat uses on-device nudity screening. Adult Chat does not treat consensual nudity as
+        a violation. Reports and enforcement against minors, coercion and other prohibited activity
+        apply in both modes. When someone reports you, the report includes a single still image
+        captured from the video at that moment and the last few text messages of the conversation.
+        These are kept only as report evidence, as described in the{" "}
+        <Link href="/privacy">Privacy Policy</Link>. Conversations are otherwise never recorded.
       </p>
       <p>
         We may warn you, limit features, or suspend or ban accounts, devices or networks that break

@@ -54,6 +54,7 @@ export class UpdateTextRules {
   constructor(private readonly context: AdminContext) {}
 
   async execute(staff: Principal, rules: TextRules): Promise<TextRules> {
+    const before = await this.context.textRules.current();
     const normalised: TextRules = {
       ...rules,
       maskedWords: unique(rules.maskedWords),
@@ -64,19 +65,28 @@ export class UpdateTextRules {
       actor: staffActor(staff),
       action: "rules.updated",
       target: { type: "rules", id: "text" },
+      // Before/after summary; word lists are recorded as counts plus what was added or removed.
       metadata: {
-        maskedWords: normalised.maskedWords.length,
-        blockedWords: normalised.blockedWords.length,
+        maskedWords: `${before.maskedWords.length} -> ${normalised.maskedWords.length}`,
+        blockedWords: `${before.blockedWords.length} -> ${normalised.blockedWords.length}`,
+        added: listChange(normalised, before).join(",") || null,
+        removed: listChange(before, normalised).join(",") || null,
         removeLinks: normalised.removeLinks,
         removePhoneNumbers: normalised.removePhoneNumbers,
         removeSocialHandles: normalised.removeSocialHandles,
-        maxRepeats: normalised.maxRepeats,
+        maxRepeats: `${before.maxRepeats} -> ${normalised.maxRepeats}`,
       },
       at: this.context.clock(),
     });
     return normalised;
   }
 }
+
+/** Words in `from` that are not in `other`, across both lists (at most 50, for the audit entry). */
+const listChange = (from: TextRules, other: TextRules) => {
+  const known = new Set([...other.maskedWords, ...other.blockedWords]);
+  return [...from.maskedWords, ...from.blockedWords].filter((word) => !known.has(word)).slice(0, 50);
+};
 
 const unique = (words: readonly string[]) =>
   [...new Set(words.map((word) => word.trim().toLowerCase()).filter(Boolean))].sort();

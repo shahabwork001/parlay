@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CHAT_MODES } from "./chat-types.js";
+import { CHAT_MODES, INTERACTION_MODES } from "./chat-types.js";
 
 export const MAX_INTERESTS = 10;
 export const MAX_MESSAGE_LENGTH = 1000;
@@ -15,6 +15,8 @@ const interestSchema = z
 /** Socket event payloads. Every inbound event is validated before it reaches any logic. */
 export const joinQueueSchema = z.object({
   mode: z.enum(CHAT_MODES),
+  interaction: z.enum(INTERACTION_MODES).default("general"),
+  adultConsent: z.boolean().default(false),
   language: z.string().regex(/^(any|[a-z]{2})$/),
   interests: z
     .array(interestSchema)

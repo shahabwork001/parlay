@@ -106,8 +106,8 @@ export function Pagination({
 }
 
 const TIER_STYLES: Record<Tier, string> = {
-  critical: "bg-destructive text-white",
-  high: "bg-destructive/10 text-destructive",
+  critical: "bg-destructive text-background",
+  high: "bg-destructive/10 text-red-800 dark:text-red-300",
   normal: "bg-secondary text-secondary-foreground",
   low: "border-border text-muted-foreground",
 };
@@ -213,5 +213,37 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
         {hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
       </dd>
     </div>
+  );
+}
+
+/** A column header that sorts the table; `direction` is set on the active column only. */
+export function SortHeader({
+  label,
+  direction,
+  onSort,
+  className,
+}: {
+  label: string;
+  direction: "ascending" | "descending" | null;
+  onSort: () => void;
+  className?: string;
+}) {
+  return (
+    <th
+      scope="col"
+      aria-sort={direction ?? "none"}
+      className={cn("px-3 py-2 font-medium", className)}
+    >
+      <button
+        type="button"
+        onClick={onSort}
+        className="inline-flex items-center gap-1 rounded-sm hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        {label}
+        <span aria-hidden className="text-[10px]">
+          {direction === "ascending" ? "▲" : direction === "descending" ? "▼" : "↕"}
+        </span>
+      </button>
+    </th>
   );
 }

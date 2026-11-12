@@ -38,6 +38,12 @@ export function AccountMenu() {
           <Link href="/account">Account</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
+          <Link href="/subscription">Membership</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/age-verification">Age verification</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/settings">Settings</Link>
         </DropdownMenuItem>
         {isStaff ? (

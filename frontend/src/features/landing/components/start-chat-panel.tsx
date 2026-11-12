@@ -12,6 +12,11 @@ export function StartChatPanel() {
       <h2 id="start-chat-heading" className="text-base font-medium">
         Start a conversation
       </h2>
+      <p className="text-sm text-muted-foreground">
+        Start in General Chat, without an expectation of sexual content. Adult Chat permits
+        consensual explicit interactions only after age verification and a fresh opt-in. It is
+        unavailable until verification is configured.
+      </p>
       <InterestInput />
       <LanguageSelect />
       <StartChatActions />

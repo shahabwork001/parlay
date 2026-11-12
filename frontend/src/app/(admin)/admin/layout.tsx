@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 /** Staff area: its own header and navigation, separate from the public site. */
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <div className="flex h-dvh flex-col">
-      <header className="border-b">
+    <div className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-background">
+      <header className="shrink-0 border-b">
         <div className="flex h-12 items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-2">
             <Link href="/" className="rounded-sm text-[15px] font-semibold tracking-tight">
@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           </div>
         </div>
       </header>
-      <main id="main" className="flex min-h-0 flex-1 flex-col">
+      <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* The shell reads the pathname, which is request-time data on dynamic admin routes. */}
         <Suspense fallback={<Skeleton className="m-6 h-64" aria-label="Loading" />}>
           <AdminShell>{children}</AdminShell>

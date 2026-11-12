@@ -1,5 +1,6 @@
 "use client";
 
+import { ProductInsights } from "./product-insights";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { adminRepository } from "@/repositories/admin-repository";
@@ -18,6 +19,7 @@ export function AdminDashboard() {
   return (
     <>
       <PageHeader title="Dashboard" description="Live numbers refresh every 10 seconds." />
+      <ProductInsights />
       <QueryView query={query} skeletonRows={6}>
         {(data) => {
           const reportsToday = data.reportsPerHour.reduce((sum, value) => sum + value, 0);

@@ -216,3 +216,7 @@ One `site_config` document (maintenance, announcement, feature switches), cached
 - Configuration is validated before anything starts; invalid configuration exits with every problem listed.
 - The API and workers start even when a dependency is down (readiness reports it; Redis and RabbitMQ reconnect in the background).
 - SIGTERM/SIGINT: stop accepting connections, stop consumers, close broker/Redis/Mongo connections; forced exit after 15 s.
+
+## Free MVP hardening (2026-10-28)
+
+Required Mongo indexes are now awaited before infrastructure creation returns. A conflicting/failed index blocks startup and closes clients; the previous availability-first startup description does not apply to Mongo index failures. New reports persist a versioned recovery marker and incomplete scoring flag in the same Mongo insert. Workers reconcile every 10 seconds independently of Rabbit delivery, restore durable partner blocks, retry pending minor suspension and finish scoring effects. Per-key trust effect IDs make partial retries safe. Historical already-scored reports are not automatically charged again. Evidence saved before a failed report insert may be orphaned until its TTL; full multi-document atomicity is not claimed. Ban audit delivery outside a recoverable report workflow still needs broader outbox coverage before a public-launch claim. WebSocket-only transport is deliberate; validate WSS at the reverse proxy.

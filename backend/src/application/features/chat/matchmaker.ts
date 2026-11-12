@@ -11,7 +11,9 @@ export interface Matchmaker {
    */
   join(ticket: MatchTicket, options: { readonly fresh: boolean }): Promise<JoinResult>;
 
-  leaveQueue(subjectId: string): Promise<void>;
+  claimConnection(subjectId: string, ownerId: string): Promise<string | null>;
+  isOwner(subjectId: string, ownerId: string): Promise<boolean>;
+  leaveQueue(subjectId: string, ownerId?: string): Promise<void>;
 
   activeSession(subjectId: string): Promise<ChatSession | null>;
 
@@ -19,7 +21,7 @@ export interface Matchmaker {
   findSession(sessionId: string): Promise<ChatSession | null>;
 
   /** Ends the participant's session (if any) for both sides and returns it. */
-  endSession(subjectId: string): Promise<ChatSession | null>;
+  endSession(subjectId: string, ownerId?: string, expectedSessionId?: string): Promise<ChatSession | null>;
 
   /** The blocker never matches the blocked subject or device again. */
   block(blocker: Participant, blocked: Participant): Promise<void>;

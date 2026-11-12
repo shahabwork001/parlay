@@ -1,7 +1,7 @@
 # Feature: Admin dashboard
 
 Status: Done
-Last updated: 2026-10-25
+Last updated: 2026-10-31
 
 ## Purpose
 
@@ -28,6 +28,8 @@ TanStack Query `admin/dashboard`, polled every 10 s.
 Done: stat grid and two bar charts (inline SVG, values also exposed to screen readers), link to the queue when reports are open.
 
 ## Changelog
+
+- 2026-10-31: Anchored the admin shell to the viewport, prevented outer page scrolling, and bounded the content/sidebar scroll regions so no unused area appears beneath the application frame. Header remains visible. Deployed dashboard and moderation queue passed bottom-edge, overflow and accessibility checks at 1880×900, 1253×478 and 360×740; short-window screenshot inspected.
 
 - 2026-10-25: Feature documented (Phase 1 scaffolding).
 - 2026-10-28: Implemented in Phase 6 (admin panel).

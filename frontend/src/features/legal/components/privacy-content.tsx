@@ -20,13 +20,15 @@ export function PrivacyContent() {
           15 minutes and then discarded; they are only kept if someone reports the chat.
         </li>
         <li>
-          <strong>Your camera picture, for screening.</strong> Video is checked for nudity on your
-          own device, by a model that runs in your browser. Frames are never uploaded; we only learn
-          that a check flagged your video, and your partner then sees it blurred.
+          <strong>Your camera picture, for screening.</strong> General Chat video is checked for
+          nudity on your own device, by a model that runs in your browser. Frames are never
+          uploaded; we only learn that a check flagged your video, and your partner then sees it
+          blurred.
         </li>
         <li>
-          <strong>Your IP address, shown to anyone.</strong> Other users never see it. You can force
-          all video through our relay so that peers cannot learn it either.
+          <strong>Peer-to-peer privacy.</strong> Direct WebRTC connections can expose your network
+          address to your partner. Enable relay-only video before connecting to route media through
+          our TURN server instead.
         </li>
       </ul>
 
@@ -63,6 +65,20 @@ export function PrivacyContent() {
         </li>
       </ul>
 
+      <h2>Product metrics and the optional Plus waitlist</h2>
+      <p>
+        We use first-party operational metrics without conversation contents or raw IP addresses.
+        Keyed pseudonymous activity identifiers are retained for up to 90 days; daily activity,
+        matching samples, session durations and client-reported call setup outcomes for up to 35
+        days. Anonymous activity can count again if the browser identity changes. These records are
+        not public.
+      </p>
+      <p>
+        The optional Plus waitlist stores your account reference, signup time and explicit interest
+        consent for up to 90 days. It does not create a subscription. Leave from the pricing page to
+        remove your signup immediately. We count authenticated pricing-preview visitors over 90 days
+        to measure demand. We do not collect payment card information.
+      </p>
       <h2>Why we process it</h2>
       <p>
         To run the service you asked for, to keep it safe (moderation, abuse prevention, child

@@ -20,6 +20,7 @@ const durationHours = z
 
 export const reportListQuerySchema = z.object({
   status: z.enum(["open", "resolved", "all"]).default("open"),
+  sort: z.enum(["priority", "newest", "oldest"]).optional(),
   tier: z.enum(["critical", "high", "normal", "low"]).optional(),
   reportedSubjectId: z.string().min(1).max(64).optional(),
   ...page,
@@ -70,7 +71,11 @@ export const manualBanSchema = z
 
 export const appealDecisionSchema = z.object({ accept: z.boolean() }).meta({ id: "AppealDecision" });
 
-export const userSearchQuerySchema = z.object({ q: z.string().trim().max(254).default(""), ...page });
+export const userSearchQuerySchema = z.object({
+  q: z.string().trim().max(254).default(""),
+  sort: z.enum(["newest", "oldest", "email"]).default("newest"),
+  ...page,
+});
 
 export const staffRolesSchema = z
   .object({
@@ -99,6 +104,7 @@ export const auditQuerySchema = z.object({
   action: z.string().trim().max(64).optional(),
   actorId: z.string().trim().max(64).optional(),
   targetId: z.string().trim().max(64).optional(),
+  order: z.enum(["newest", "oldest"]).default("newest"),
   ...page,
 });
 

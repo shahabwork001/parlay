@@ -1,0 +1,47 @@
+.validation/
+.deployment/
+# Dependencies and generated output (all projects)
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+*.log
+# Runtime configuration and credentials; examples contain placeholders only
+.env
+.env.*
+*.env
+!.env.example
+.aws/
+.ssh/
+.codex/
+.agents/
+credentials*.json
+admin-credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+# Local data, backups, release bundles and editor state
+data/
+backups/
+*.archive
+*.dump
+*.sqlite*
+*.db
+.ci/
+.release/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

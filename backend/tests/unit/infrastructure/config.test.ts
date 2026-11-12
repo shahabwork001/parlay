@@ -37,7 +37,7 @@ describe("loadApiConfig", () => {
     expect(config.frontendUrl).toBe("http://localhost:3000");
     expect(config.cookieSecure).toBe(true);
     expect(config.auth).toMatchObject({ accessTokenTtlSeconds: 900, refreshTokenTtlMs: 30 * 86_400_000 });
-    expect(config.termsVersion).toBe("2026-10-25");
+    expect(config.termsVersion).toBe("2026-10-28");
     expect(config.rateLimitMultiplier).toBe(1);
     expect(config.matchInterestFallbackMs).toBe(5000);
     expect(config.turn).toEqual({
@@ -104,5 +104,25 @@ describe("loadSeedConfig", () => {
     const config = loadSeedConfig(infrastructure);
     expect(config.mongo.uri).toBe("mongodb://localhost:27017");
     expect(config).toMatchObject({ adminEmail: "admin@parley.local", printCredentials: false });
+  });
+});
+
+describe("free MVP billing configuration", () => {
+  it("requires no merchant credentials with the default disabled provider", () => {
+    expect(loadApiConfig({ ...api, NODE_ENV: "production" }).billing).toEqual({
+      provider: "none",
+      mockSecret: undefined,
+      priceMinor: 999,
+    });
+  });
+  it("refuses mock billing in production even with a valid test secret", () => {
+    expect(() =>
+      loadApiConfig({
+        ...api,
+        NODE_ENV: "production",
+        PAYMENT_PROVIDER: "mock",
+        MOCK_PAYMENT_WEBHOOK_SECRET: "s".repeat(32),
+      }),
+    ).toThrow("forbidden");
   });
 });

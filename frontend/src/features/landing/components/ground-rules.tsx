@@ -1,6 +1,6 @@
 const RULES = [
   "Adults only. You must be 18 or older to use Parley.",
-  "No nudity, sexual content or sexual requests.",
+  "No explicit sexual content in General Chat. Adult Chat requires verified age and explicit consent.",
   "No harassment, hate speech, threats or violence.",
   "No spam, advertising or sharing personal contact details.",
   "Skip anyone, any time. Report anything that breaks these rules.",

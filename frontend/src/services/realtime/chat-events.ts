@@ -13,10 +13,11 @@ export type Ack<T> =
 export interface MatchFound {
   readonly sessionId: string;
   readonly mode: ChatMode;
+  readonly interaction?: "general" | "adult";
   readonly role: "caller" | "callee";
   readonly sharedInterests: readonly string[];
   /** On-device screening threshold for this session (stricter in low-trust pools). */
-  readonly safety: { readonly nsfwThreshold: number };
+  readonly safety: { readonly nsfwThreshold: number; readonly screenNudity?: boolean };
 }
 
 export interface ChatMessagePayload {
@@ -48,12 +49,15 @@ export interface MediaState {
 }
 
 export interface JoinRequest {
+  readonly adultConsent?: boolean;
   readonly mode: ChatMode;
+  readonly interaction?: "general" | "adult";
   readonly language: string;
   readonly interests: readonly string[];
 }
 
 export interface ServerToClientEvents {
+  "chat:replaced": () => void;
   "match:found": (payload: MatchFound) => void;
   "match:ended": (payload: { readonly sessionId: string; readonly reason: EndReason }) => void;
   "chat:message": (payload: ChatMessagePayload) => void;
@@ -67,6 +71,7 @@ export interface ServerToClientEvents {
 }
 
 export interface ClientToServerEvents {
+  "rtc:outcome": (payload: "connected" | "failed") => void;
   "queue:join": (
     payload: JoinRequest,
     ack: (result: Ack<{ status: "matched" | "queued" }>) => void,

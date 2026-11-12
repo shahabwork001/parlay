@@ -95,3 +95,31 @@ describe("chat store", () => {
     });
   });
 });
+
+describe("session screening policy", () => {
+  beforeEach(() => useChatStore.getState().reset());
+  it("keeps General screening on even when the flag says otherwise", () => {
+    useChatStore.getState().matched({
+      ...match,
+      interaction: "general",
+      safety: { ...match.safety, screenNudity: false },
+    });
+    expect(useChatStore.getState().screenNudity).toBe(true);
+  });
+  it("keeps screening on for legacy matches and fails closed for incomplete Adult policy", () => {
+    useChatStore.getState().matched(match);
+    expect(useChatStore.getState().screenNudity).toBe(true);
+    useChatStore.getState().matched({ ...match, interaction: "adult" });
+    expect(useChatStore.getState().screenNudity).toBe(true);
+  });
+  it("disables only nudity screening for an explicitly Adult server session and resets on search", () => {
+    useChatStore.getState().matched({
+      ...match,
+      interaction: "adult",
+      safety: { ...match.safety, screenNudity: false },
+    });
+    expect(useChatStore.getState().screenNudity).toBe(false);
+    useChatStore.getState().searching();
+    expect(useChatStore.getState().screenNudity).toBe(true);
+  });
+});

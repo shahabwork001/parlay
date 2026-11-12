@@ -55,6 +55,7 @@ export function createConsumers(dependencies: WorkerDependencies): MessageConsum
     consumer(
       subscriptions.scoring,
       new ScoreReport({
+        blocks: new MongoBlockRepository(infrastructure.database),
         reports: moderation.reports,
         evidence: moderation.evidence,
         classifier: moderation.classifier,

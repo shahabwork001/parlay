@@ -3,6 +3,7 @@ import type {
   IntegrationEvent,
   IntegrationEventHandler,
 } from "../../abstractions/messaging/integration-event.js";
+import type { BlockRepository } from "../chat/blocks.js";
 import type { Clock } from "../identity/ports.js";
 import type { BanService } from "./bans.js";
 import type { ModerationPolicy } from "./moderation-policy.js";
@@ -12,6 +13,7 @@ import type { ContentClassifier, EvidenceStore, ReportRepository, TrustStore } f
 const DAY_MS = 24 * 60 * 60_000;
 
 export interface ScoringDependencies {
+  readonly blocks?: BlockRepository;
   readonly reports: ReportRepository;
   readonly evidence: EvidenceStore;
   readonly classifier: ContentClassifier;
@@ -32,38 +34,55 @@ export class ScoreReport implements IntegrationEventHandler<{ reportId: string }
   async handle(event: IntegrationEvent<{ reportId: string }>): Promise<void> {
     const { deps } = this;
     const report = await deps.reports.getById(event.payload.reportId);
-    if (!report || report.scoredAt) return;
-
-    const evidence = report.evidenceId ? await deps.evidence.get(report.evidenceId) : null;
-    const score = await deps.classifier.classify({
-      image: evidence?.snapshot?.data ?? null,
-      texts:
-        evidence?.messages.filter((message) => message.from === "reported").map((message) => message.text) ??
-        [],
+    if (!report || (await deps.reports.isScoringComplete(report.id))) return;
+    await deps.blocks?.record({
+      blockerSubjectId: report.reporter.subjectId,
+      blockerDeviceId: report.reporter.deviceId,
+      blockedSubjectId: report.reported.subjectId,
+      blockedDeviceId: report.reported.deviceId,
+      blockedAt: report.createdAt,
     });
+    if (report.isMinorSafety && report.status === "pending-review")
+      await deps.bans.issueAutomatic(personalTargets(report.reported), "pending-review", null, report.id);
+    if (!report.scoredAt) {
+      const evidence = report.evidenceId ? await deps.evidence.get(report.evidenceId) : null;
+      const score = await deps.classifier.classify({
+        image: evidence?.snapshot?.data ?? null,
+        texts:
+          evidence?.messages
+            .filter((message) => message.from === "reported")
+            .map((message) => message.text) ?? [],
+      });
 
-    const now = deps.clock();
-    const reportedKeys = trustKeys(report.reported);
-    const [reporterTrust, reportedTrust, lastDay] = await Promise.all([
-      deps.trust.scoreOf(trustKeys(report.reporter)),
-      deps.trust.scoreOf(reportedKeys),
-      deps.reports.countAgainst(report.reported.subjectId, new Date(now.getTime() - DAY_MS)),
-    ]);
+      const now = deps.clock();
+      const reportedKeys = trustKeys(report.reported);
+      const [reporterTrust, reportedTrust, lastDay] = await Promise.all([
+        deps.trust.scoreOf(trustKeys(report.reporter)),
+        deps.trust.scoreOf(reportedKeys),
+        deps.reports.countAgainst(report.reported.subjectId, new Date(now.getTime() - DAY_MS)),
+      ]);
 
-    report.applyScore(
-      score,
-      { reporterTrust, reportedTrust, recentReportsAgainst: Math.max(0, lastDay.reports - 1) },
-      now,
+      report.applyScore(
+        score,
+        { reporterTrust, reportedTrust, recentReportsAgainst: Math.max(0, lastDay.reports - 1) },
+        now,
+      );
+      // A concurrent delivery already scored it.
+      if (!(await deps.reports.update(report))) return;
+    }
+    await deps.trust.adjust(
+      trustKeys(report.reported),
+      TRUST_ADJUSTMENTS.reportReceived,
+      `report:${report.id}`,
     );
-    // A concurrent delivery already scored it.
-    if (!(await deps.reports.update(report))) return;
 
-    await deps.trust.adjust(reportedKeys, TRUST_ADJUSTMENTS.reportReceived);
-
-    if (report.isMinorSafety) return;
+    if (report.isMinorSafety || report.status !== "pending-review") {
+      await deps.reports.completeScoring(report.id);
+      return;
+    }
     const recent = await deps.reports.countAgainst(
       report.reported.subjectId,
-      new Date(now.getTime() - deps.policy.reportSuspensionWindowMs),
+      new Date(deps.clock().getTime() - deps.policy.reportSuspensionWindowMs),
     );
     if (recent.distinctReporters >= deps.policy.reportSuspensionThreshold)
       await deps.bans.issueAutomatic(
@@ -72,5 +91,6 @@ export class ScoreReport implements IntegrationEventHandler<{ reportId: string }
         deps.policy.automaticBanMs,
         report.id,
       );
+    await deps.reports.completeScoring(report.id);
   }
 }

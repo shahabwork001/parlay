@@ -13,7 +13,8 @@ export function LandingPage() {
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-pretty text-muted-foreground sm:text-lg">
               Parley pairs you with a random adult for a video or text conversation. No account
-              needed, moderated around the clock, and nothing is recorded.
+              needed for General Chat. Leave or report at any time. Parley does not record calls;
+              reports may retain a snapshot and recent messages.
             </p>
           </div>
           <GroundRules />

@@ -15,6 +15,7 @@ const NAV: readonly { href: string; label: string; permission: Permission }[] = 
   { href: "/admin/bans", label: "Bans and appeals", permission: "users.view" },
   { href: "/admin/users", label: "Users", permission: "users.view" },
   { href: "/admin/rules", label: "Word lists", permission: "rules.manage" },
+  { href: "/admin/billing", label: "Billing", permission: "plans.manage" },
   { href: "/admin/site", label: "Site settings", permission: "flags.manage" },
   { href: "/admin/staff", label: "Staff", permission: "staff.manage" },
   { href: "/admin/audit", label: "Audit log", permission: "audit.view" },
@@ -94,8 +95,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
     href === "/admin" ? pathname === href : pathname.startsWith(href);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-      <nav aria-label="Admin" className="border-b md:w-56 md:shrink-0 md:border-r md:border-b-0">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+      <nav
+        aria-label="Admin"
+        className="shrink-0 border-b md:w-56 md:overflow-y-auto md:border-r md:border-b-0"
+      >
         <ul className="flex gap-1 overflow-x-auto p-2 md:flex-col md:p-3">
           {items.map((item) => (
             <li key={item.href} className="shrink-0">
@@ -115,7 +119,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
           ))}
         </ul>
       </nav>
-      <div className="min-w-0 flex-1 overflow-y-auto">
+      <div
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain"
+        role="region"
+        aria-label="Admin content"
+        tabIndex={0}
+      >
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6">
           {children}
         </div>

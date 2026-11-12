@@ -72,6 +72,7 @@ export function createApp(dependencies: AppDependencies): Express {
     }),
   );
   app.use(compression());
+  app.use("/api/v1/billing/webhooks", express.raw({ type: "application/json", limit: "100kb" }));
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());
 

@@ -256,7 +256,12 @@ export class AdminRepository {
   }
 
   listReports(
-    filter: { status: "open" | "resolved" | "all"; tier?: Tier; page: number },
+    filter: {
+      status: "open" | "resolved" | "all";
+      tier?: Tier;
+      sort?: "priority" | "newest" | "oldest";
+      page: number;
+    },
     signal?: AbortSignal,
   ): Promise<Paged<ReportSummary>> {
     return this.client.request(`/api/v1/admin/reports${query({ ...filter, pageSize: 25 })}`, {
@@ -334,8 +339,11 @@ export class AdminRepository {
     });
   }
 
-  searchUsers(q: string, page: number, signal?: AbortSignal): Promise<Paged<UserSummary>> {
-    return this.client.request(`/api/v1/admin/users${query({ q, page, pageSize: 25 })}`, {
+  searchUsers(
+    filter: { q: string; sort: "newest" | "oldest" | "email"; page: number },
+    signal?: AbortSignal,
+  ): Promise<Paged<UserSummary>> {
+    return this.client.request(`/api/v1/admin/users${query({ ...filter, pageSize: 25 })}`, {
       schema: paged(userSummarySchema),
       signal,
     });
@@ -378,7 +386,13 @@ export class AdminRepository {
   }
 
   audit(
-    filter: { action?: string; actorId?: string; targetId?: string; page: number },
+    filter: {
+      action?: string;
+      actorId?: string;
+      targetId?: string;
+      order?: "newest" | "oldest";
+      page: number;
+    },
     signal?: AbortSignal,
   ): Promise<Paged<AuditEntry>> {
     return this.client.request(`/api/v1/admin/audit${query({ ...filter, pageSize: 50 })}`, {

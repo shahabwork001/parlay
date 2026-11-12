@@ -1,0 +1,150 @@
+# Disposable local validation only. Use scripts/validate-stack.ps1; never deploy this configuration.
+x-runtime: &runtime
+  NODE_ENV: production
+  MONGO_URI: mongodb://validation:${VALIDATION_DB_PASSWORD:?}@mongodb:27017/?authSource=admin
+  MONGO_DATABASE: parley_validation
+  REDIS_URL: redis://:${VALIDATION_REDIS_PASSWORD:?}@redis:6379
+  RABBITMQ_URL: amqp://validation:${VALIDATION_MQ_PASSWORD:?}@rabbitmq:5672
+  LOG_LEVEL: warn
+  EVIDENCE_RETENTION_DAYS: "30"
+  MINOR_SAFETY_RETENTION_DAYS: "365"
+x-logs: &logs
+  driver: json-file
+  options: { max-size: "5m", max-file: "2" }
+services:
+  mongodb:
+    mem_limit: 512m
+    image: mongo:8.0
+    command: [mongod, --wiredTigerCacheSizeGB, "0.25"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: validation
+      MONGO_INITDB_ROOT_PASSWORD: ${VALIDATION_DB_PASSWORD:?}
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "db.adminCommand('ping').ok"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    logging: *logs
+  redis:
+    mem_limit: 192m
+    image: redis:8-alpine
+    command:
+      [
+        redis-server,
+        --appendonly,
+        "yes",
+        --requirepass,
+        "${VALIDATION_REDIS_PASSWORD:?}",
+      ]
+    volumes: [redis-data:/data]
+    environment: { REDIS_PASSWORD: "${VALIDATION_REDIS_PASSWORD:?}" }
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG',
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    logging: *logs
+  rabbitmq:
+    mem_limit: 512m
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: validation
+      RABBITMQ_DEFAULT_PASS: ${VALIDATION_MQ_PASSWORD:?}
+    volumes: [rabbit-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_port_connectivity]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: *logs
+  coturn:
+    mem_limit: 128m
+    image: coturn/coturn:4.7
+    command:
+      - -n
+      - --log-file=stdout
+      - --listening-port=3478
+      - --fingerprint
+      - --use-auth-secret
+      - --static-auth-secret=${VALIDATION_TURN_SECRET:?}
+      - --realm=validation.local
+      - --external-ip=127.0.0.1
+      - --min-port=49300
+      - --max-port=49320
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --no-multicast-peers
+      # Only for two local synthetic browser peers. Never enable on a public TURN server.
+      - --allow-loopback-peers
+    ports:
+      - "127.0.0.1:13478:3478/udp"
+      - "127.0.0.1:13478:3478/tcp"
+      - "127.0.0.1:49300-49320:49300-49320/udp"
+    logging: *logs
+  mailpit:
+    mem_limit: 96m
+    image: axllent/mailpit:latest
+    ports: ["127.0.0.1:18025:8025"]
+    logging: *logs
+  api:
+    mem_limit: 384m
+    build: { context: backend, target: api }
+    image: parley-validation-api:${VALIDATION_RUN:?}
+    environment:
+      <<: *runtime
+      CORS_ALLOWED_ORIGINS: http://127.0.0.1:3107
+      FRONTEND_URL: http://127.0.0.1:3107
+      JWT_SECRET: ${VALIDATION_JWT_SECRET:?}
+      HASH_SECRET: ${VALIDATION_HASH_SECRET:?}
+      TOTP_ENCRYPTION_KEY: ${VALIDATION_TOTP_KEY:?}
+      TERMS_VERSION: "2026-10-28"
+      COOKIE_SECURE: "true"
+      RATE_LIMIT_MULTIPLIER: "50"
+      MATCH_INTEREST_FALLBACK_MS: "5000"
+      TURN_SECRET: ${VALIDATION_TURN_SECRET:?}
+      TURN_URLS: turn:127.0.0.1:13478?transport=udp,turn:127.0.0.1:13478?transport=tcp
+      STUN_URLS: stun:127.0.0.1:13478
+      TURN_HEALTH_HOST: coturn
+      WORKERS_HEALTH_URL: http://workers:8081/health/ready
+      PAYMENT_PROVIDER: none
+      ADULT_CHAT_ENABLED: "false"
+    ports: ["127.0.0.1:18080:8080"]
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    logging: *logs
+  workers:
+    mem_limit: 384m
+    build: { context: backend, target: workers }
+    image: parley-validation-workers:${VALIDATION_RUN:?}
+    environment:
+      <<: *runtime
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      EMAIL_FROM: Parley Validation <validation@example.invalid>
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+    logging: *logs
+  frontend:
+    mem_limit: 384m
+    build:
+      context: frontend
+      args: { NEXT_PUBLIC_API_BASE_URL: "http://127.0.0.1:18080" }
+    image: parley-validation-frontend:${VALIDATION_RUN:?}
+    ports: ["127.0.0.1:3107:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    logging: *logs
+volumes:
+  mongo-data:
+  redis-data:
+  rabbit-data:

@@ -1,9 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import path from "node:path";
-import { type BrowserContext, expect, type Page, test } from "@playwright/test";
-import { TOTP } from "otpauth";
-import { connectedTextPair } from "./support";
+import { type BrowserContext, expect, test } from "@playwright/test";
+import { connectedTextPair, createStaff, signInAsStaff } from "./support";
 
 /*
  * The full moderation loop from the brief: a stranger is reported in chat, a moderator sees the
@@ -17,45 +14,6 @@ const openContexts: BrowserContext[] = [];
 test.afterEach(async () => {
   await Promise.all(openContexts.splice(0).map((context) => context.close()));
 });
-
-interface StaffCredentials {
-  email: string;
-  password: string;
-  totpSecret: string;
-}
-
-/** A fresh staff account with two-factor enabled, created with the operator tool in the API container. */
-function createStaff(role: "Moderator" | "Admin"): StaffCredentials {
-  const email = `e2e-${role.toLowerCase()}-${randomUUID().slice(0, 8)}@example.com`;
-  const output = execFileSync(
-    "docker",
-    [
-      "compose",
-      "exec",
-      "-T",
-      "api",
-      "node",
-      "dist/tools/create-staff.js",
-      "--email",
-      email,
-      "--role",
-      role,
-    ],
-    { cwd: path.resolve(process.cwd(), ".."), encoding: "utf8" },
-  );
-  return JSON.parse(output.trim().split("\n").at(-1) ?? "{}") as StaffCredentials;
-}
-
-async function signInAsStaff(page: Page, staff: StaffCredentials) {
-  await page.goto("/login?next=/admin", { waitUntil: "networkidle" });
-  await page.getByLabel("Email").fill(staff.email);
-  await page.getByLabel("Password").fill(staff.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  const code = new TOTP({ secret: staff.totpSecret, digits: 6, period: 30 }).generate();
-  await page.getByLabel("Authentication code").fill(code);
-  await page.getByRole("button", { name: "Verify" }).click();
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 15_000 });
-}
 
 test("a reported stranger is banned from the admin queue and can no longer chat", async ({
   browser,
